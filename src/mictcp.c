@@ -76,7 +76,16 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
 int mic_tcp_recv (int socket, char* mesg, int max_mesg_size)
 {
     printf("[MIC-TCP] Appel de la fonction: "); printf(__FUNCTION__); printf("\n");
-    return -1;
+    mic_tcp_payload payload ;
+    payload.data=mesg;
+    payload.size=max_mesg_size;
+    int effective_data_size= app_buffer_get(payload);
+    if (effective_data_size ==0){
+        return -1;
+    } 
+    else{
+        return effective_data_size;
+    } 
 }
 
 /*
