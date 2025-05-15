@@ -13,6 +13,7 @@
 #include <netdb.h>
 #include <pthread.h>
 #include <sys/time.h>
+#include <stdbool.h>
 
 
 /*

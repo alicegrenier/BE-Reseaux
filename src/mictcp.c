@@ -113,5 +113,5 @@ int mic_tcp_close (int socket)
 void process_received_PDU(mic_tcp_pdu pdu, mic_tcp_ip_addr local_addr, mic_tcp_ip_addr remote_addr)
 {
     printf("[MIC-TCP] Appel de la fonction: "); printf(__FUNCTION__); printf("\n");
-    //vérifier que le port_dest corresponde à une application connectée
+    app_buffer_put(pdu.payload);
 }
