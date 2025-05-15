@@ -1,6 +1,9 @@
 #include <mictcp.h>
 #include <api/mictcp_core.h>
 
+#define nb_socket 10
+
+struct mic_tcp_sock tableau_sockets[nb_socket] ;
 /*
  * Permet de créer un socket entre l’application et MIC-TCP
  * Retourne le descripteur du socket ou bien -1 en cas d'erreur
@@ -54,6 +57,8 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
     printf("[MIC-TCP] Appel de la fonction: "); printf(__FUNCTION__); printf("\n");
     // créer un mic_tcp_pdu
     mic_tcp_pdu pdu;
+    struct mic_tcp_sock le_socket ;
+    
     pdu.payload.data = mesg;
     pdu.payload.size = mesg_size;
     pdu.header.source_port =  /*aller chercher dans la structure mic_tcp_socket 
