@@ -77,6 +77,7 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
     par l'application lors du mic_tcp_connect et qu'on a stocké dans la structure 
     mic_tcp_socket correspondant au socket identifié par mic_sock passé en paramètre*/
     /* envoyer un message (dont la taille et le contenu sont passés en paramètres)*/
+
     int sent_size = IP_send(pdu, le_socket.remote_addr.ip_addr) ; /* 2e arg = structure mic_tcp_socket_addr contenue 
     dans la structure mic_tcp_socket correspondant au socket identifié par mic_sock passé en paramètre*/
     return sent_size;
