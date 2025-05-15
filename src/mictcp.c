@@ -4,6 +4,7 @@
 #define nb_socket 10
 
 struct mic_tcp_sock tableau_sockets[nb_socket] ;
+int pe; // c'est aussi Pa
 /*
  * Permet de créer un socket entre l’application et MIC-TCP
  * Retourne le descripteur du socket ou bien -1 en cas d'erreur
@@ -121,5 +122,6 @@ int mic_tcp_close (int socket)
 void process_received_PDU(mic_tcp_pdu pdu, mic_tcp_ip_addr local_addr, mic_tcp_ip_addr remote_addr)
 {
     printf("[MIC-TCP] Appel de la fonction: "); printf(__FUNCTION__); printf("\n");
+    //envoyer le ack avec le bon numero 
     app_buffer_put(pdu.payload);
 }
