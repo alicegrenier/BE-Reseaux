@@ -5,6 +5,8 @@
 
 struct mic_tcp_sock tableau_sockets[nb_socket] ;
 int pe; // c'est aussi Pa
+struct mic_tcp_pdu buffer[1] ; // buffer pour stocker le PDU
+unsigned long timer = 1000 ; //timer avant renvoie d'un PDU
 /*
  * Permet de créer un socket entre l’application et MIC-TCP
  * Retourne le descripteur du socket ou bien -1 en cas d'erreur
@@ -79,9 +81,43 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
     mic_tcp_socket correspondant au socket identifié par mic_sock passé en paramètre*/
     /* envoyer un message (dont la taille et le contenu sont passés en paramètres)*/
 
+    // renseigner le numéro de séquence
+    pdu.header.seq_num = pe ;
+    /* stocker le pdu dans un buffer: o crée un tableau correspondant au PDU stocké dans le buffer en émission, et on
+    stocke le PDU dans la seule case du tableau (on envoi un PDU à la fois) (struct mic_tcp_pdu buffer[1])*/
+    buffer[0] = pdu ;
+
+    // incrémenter Pe
+    pe = (pe+1)%2 ;
+
+    // envoyer le message (dont la taille et le contenu sont passés en paramètres)
     int sent_size = IP_send(pdu, le_socket.remote_addr.ip_addr) ; /* 2e arg = structure mic_tcp_socket_addr contenue 
     dans la structure mic_tcp_socket correspondant au socket identifié par mic_sock passé en paramètre*/
-    return sent_size;
+
+    bool recu = false ;
+    int retour_recv = -1 ;
+    int i = 0 ; /* variable qui permet de ne pas rester éternellement dans la boucle si on ne reçoit pas de message
+    comme ça on n'en envoie pas 10 000 à la suite*/
+
+    mic_tcp_pdu pdu_recu ; //TODO: initialiser le pdu
+
+    while((pdu_recu.header.ack_num == buffer[0].header.seq_num) && i<100) {
+        retour_recv = IP_recv() ; // TODO: mettre les arguments
+
+        if((retour_recv != -1) && (pdu_recu.header.ack_num == buffer[0].header.seq_num)) {
+            recu = true ;
+        } else {
+            sent_size = IP_send(buffer[0], ) ; // TODO: mettre le deuxième argument
+        }
+        i++ ;
+    }
+    if(i < 100) {
+        return sent_size;
+    } else {
+        return -1 ;
+    }
+
+    
 }
 
 /*
