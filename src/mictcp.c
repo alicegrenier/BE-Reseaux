@@ -125,6 +125,17 @@ int mic_tcp_close (int socket)
 void process_received_PDU(mic_tcp_pdu pdu, mic_tcp_ip_addr local_addr, mic_tcp_ip_addr remote_addr)
 {
     printf("[MIC-TCP] Appel de la fonction: "); printf(__FUNCTION__); printf("\n");
+    if (pdu.payload.data==NULL){
+        app_buffer_put(pdu.payload);
+    }
+    
     //envoyer le ack avec le bon numero 
-    app_buffer_put(pdu.payload);
+        //creer un pdu 
+    mic_tcp_pdu pdu_ack;
+    pdu_ack.header.ack_num=pe;
+    pdu_ack.header.ack=1;
+    pdu_ack.header.dest_port=pdu.header.source_port;
+    pdu_ack.header.source_port=pdu.header.dest_port;
+
+    
 }
