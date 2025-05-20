@@ -104,12 +104,20 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
     while(!recu || k<100) { /* tant qu'on n'a pas fait trop ditérations, 
         et tant que l'accusé de réception n'est pas reçu, 
         sachant que son numéro doit correspondre au numéro de séquence du pdu contenu dans le buffer*/
-        retour_recv = IP_recv(&pdu_recu, &le_socket.local_addr.ip_addr, &le_socket.remote_addr.ip_addr, timer) ; // TODO: mettre les arguments FAIT
+        
+        while (retour_recv==-1){ // on rend bloquant le recv 
+            retour_recv = IP_recv(&pdu_recu, &le_socket.local_addr.ip_addr, &le_socket.remote_addr.ip_addr, timer) ; // TODO: mettre les arguments FAIT
+            //printf("retour_recv : %d\n", retour_recv) ;
+        }
 
-        if((retour_recv != -1) && (pdu_recu.header.ack_num == buffer[0].header.seq_num)) {
+        if((pdu_recu.header.ack_num == buffer[0].header.seq_num)) {
             recu = true ;
-        } else {
-            sent_size = IP_send(buffer[0], le_socket.remote_addr.ip_addr) ; // TODO: mettre le deuxième argument FAIT
+            
+        } else if(k<5){
+            printf("pdu_recu.header.ack_num : %d\n", pdu_recu.header.ack_num) ;
+            printf("buffer[0].header.seq_num : %d\n", buffer[0].header.seq_num) ;
+            sent_size = IP_send(buffer[0], le_socket.remote_addr.ip_addr) ; 
+            printf("sent_size : %d\n",sent_size) ;
         }
         k++ ;
     }
@@ -163,7 +171,7 @@ int mic_tcp_close (int socket)
 void process_received_PDU(mic_tcp_pdu pdu, mic_tcp_ip_addr local_addr, mic_tcp_ip_addr remote_addr)
 {
     printf("[MIC-TCP] Appel de la fonction: "); printf(__FUNCTION__); printf("\n");
-    if (pdu.payload.size!=0){
+    if (pdu.payload.size!=0 && pdu.header.seq_num==pe){
         app_buffer_put(pdu.payload);
 
          //envoyer le ack avec le bon numero 
