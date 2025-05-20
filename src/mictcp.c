@@ -165,7 +165,7 @@ void process_received_PDU(mic_tcp_pdu pdu, mic_tcp_ip_addr local_addr, mic_tcp_i
     if (pdu.payload.data==NULL){
         app_buffer_put(pdu.payload);
     }
-    
+
     //envoyer le ack avec le bon numero 
         //creer un pdu 
     mic_tcp_pdu pdu_ack;
@@ -175,7 +175,8 @@ void process_received_PDU(mic_tcp_pdu pdu, mic_tcp_ip_addr local_addr, mic_tcp_i
     pdu_ack.header.source_port=pdu.header.dest_port;
 
     buffer[0]=pdu_ack;
-    //IP_send(pdu,tableau_sockets[]);
+    IP_send(pdu,remote_addr);
+    pe=(pe+1)%2;
 
     
 }
