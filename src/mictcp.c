@@ -101,13 +101,14 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
 
     mic_tcp_pdu pdu_recu ; //TODO: initialiser le pdu
 
-    while((pdu_recu.header.ack_num == buffer[0].header.seq_num) && i<100) {
-        retour_recv = IP_recv() ; // TODO: mettre les arguments
+    while((pdu_recu.header.ack_num == buffer[0].header.seq_num) && i<100) { /* tant que l'accusé de réception n'est pas reçu, 
+        sachant que son numéro doit correspondre au numéro de séquence du pdu contenu dans le buffer*/
+        retour_recv = IP_recv(&pdu_recu, &le_socket.local_addr.ip_addr, &le_socket.remote_addr.ip_addr, timer) ; // TODO: mettre les arguments FAIT
 
         if((retour_recv != -1) && (pdu_recu.header.ack_num == buffer[0].header.seq_num)) {
             recu = true ;
         } else {
-            sent_size = IP_send(buffer[0], ) ; // TODO: mettre le deuxième argument
+            sent_size = IP_send(buffer[0], le_socket.remote_addr.ip_addr) ; // TODO: mettre le deuxième argument FAIT
         }
         i++ ;
     }
