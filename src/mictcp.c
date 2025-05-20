@@ -96,12 +96,12 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
 
     bool recu = false ;
     int retour_recv = -1 ;
-    int i = 0 ; /* variable qui permet de ne pas rester éternellement dans la boucle si on ne reçoit pas de message
+    int k = 0 ; /* variable qui permet de ne pas rester éternellement dans la boucle si on ne reçoit pas de message
     comme ça on n'en envoie pas 10 000 à la suite*/
 
     mic_tcp_pdu pdu_recu ; //TODO: initialiser le pdu
 
-    while((pdu_recu.header.ack_num == buffer[0].header.seq_num) && i<100) { /* tant que l'accusé de réception n'est pas reçu, 
+    while((pdu_recu.header.ack_num == buffer[0].header.seq_num) && k<100) { /* tant que l'accusé de réception n'est pas reçu, 
         sachant que son numéro doit correspondre au numéro de séquence du pdu contenu dans le buffer*/
         retour_recv = IP_recv(&pdu_recu, &le_socket.local_addr.ip_addr, &le_socket.remote_addr.ip_addr, timer) ; // TODO: mettre les arguments FAIT
 
@@ -110,9 +110,9 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
         } else {
             sent_size = IP_send(buffer[0], le_socket.remote_addr.ip_addr) ; // TODO: mettre le deuxième argument FAIT
         }
-        i++ ;
+        k++ ;
     }
-    if(i < 100) {
+    if(k < 100) {
         return sent_size;
     } else {
         return -1 ;
