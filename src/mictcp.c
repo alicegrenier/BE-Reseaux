@@ -110,12 +110,11 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
             printf("retour_recv : %d\n", retour_recv) ;
         }
 
-        printf("pdu_recu.header.ack_num : %d\n", pdu_recu.header.ack_num) ;
-        printf("buffer[0].header.seq_num : %d\n", buffer[0].header.seq_num) ;
+        /*printf("pdu_recu.header.ack_num : %d\n", pdu_recu.header.ack_num) ;
+        printf("buffer[0].header.seq_num : %d\n", buffer[0].header.seq_num) ;*/
 
         if (pdu_recu.header.ack==1){ //on vérifie que le PDU reçu soit bien un ack 
             if((pdu_recu.header.ack_num - buffer[0].header.seq_num) == 0) {
-                printf ("ON EST RENTRES !! \n");
                 recu = 1 ;
             }
         }
@@ -182,10 +181,10 @@ void process_received_PDU(mic_tcp_pdu pdu, mic_tcp_ip_addr local_addr, mic_tcp_i
 {
     printf("[MIC-TCP] Appel de la fonction: "); printf(__FUNCTION__); printf("\n");
     if (pdu.payload.size!=0 && pdu.header.seq_num==pe){
-        printf("  ON RENTRE DANS LA RECUPERATION DU PAQUET \n");
+        //printf("  ON RENTRE DANS LA RECUPERATION DU PAQUET \n");
         app_buffer_put(pdu.payload);
 
-        printf("RECEPTION  : ack_num : %d \n",pe);
+        //printf("RECEPTION  : ack_num : %d \n",pe);
 
          //envoyer le ack avec le bon numero 
         //creer un header
