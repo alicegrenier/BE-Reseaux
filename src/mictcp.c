@@ -94,12 +94,12 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
     int sent_size = IP_send(buffer[0], le_socket.remote_addr.ip_addr) ; /* 2e arg = structure mic_tcp_socket_addr contenue 
     dans la structure mic_tcp_socket correspondant au socket identifié par mic_sock passé en paramètre*/
 
-    int recu = 0 ; // 0 faux et1  juste
+    int recu = 0 ; // 0 faux et 1  juste
     int retour_recv = -1 ;
     int k = 0 ; /* variable qui permet de ne pas rester éternellement dans la boucle si on ne reçoit pas de message
     comme ça on n'en envoie pas 10 000 à la suite*/
 
-    mic_tcp_pdu pdu_recu ; //TODO: initialiser le pdu
+    mic_tcp_pdu pdu_recu ; 
 
     while((recu < 1) && k<10) { /* tant qu'on n'a pas fait trop ditérations, 
         et tant que l'accusé de réception n'est pas reçu, 
