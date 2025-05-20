@@ -4,7 +4,7 @@
 #define nb_socket 10
 
 struct mic_tcp_sock tableau_sockets[nb_socket] ;
-int pe; // c'est aussi Pa
+int pe=0; // c'est aussi Pa _ on met ici la valeur de 0 car cette valeur sera échangée lors de la phase d'établissement de connexion implémentée dans les prochaines versions 
 struct mic_tcp_pdu buffer[1] ; // buffer pour stocker le PDU
 unsigned long timer = 1000 ; //timer avant renvoie d'un PDU
 /*
@@ -172,7 +172,10 @@ void process_received_PDU(mic_tcp_pdu pdu, mic_tcp_ip_addr local_addr, mic_tcp_i
 {
     printf("[MIC-TCP] Appel de la fonction: "); printf(__FUNCTION__); printf("\n");
     if (pdu.payload.size!=0 && pdu.header.seq_num==pe){
+        printf("  ON RENTRE DANS LA RECUPERATION DU PAQUET \n");
         app_buffer_put(pdu.payload);
+
+        printf("RECEPTION  : ack_num : %d \n",pe);
 
          //envoyer le ack avec le bon numero 
         //creer un header
@@ -186,7 +189,9 @@ void process_received_PDU(mic_tcp_pdu pdu, mic_tcp_ip_addr local_addr, mic_tcp_i
         pdu_ack.payload.size=0;
 
         buffer[0]=pdu_ack;
-        IP_send(pdu,remote_addr);
+
+        printf("ACK NUM : %d \n",buffer[0].header.ack_num);
+        IP_send(pdu_ack,remote_addr);
         pe=(pe+1)%2;
 
     }
