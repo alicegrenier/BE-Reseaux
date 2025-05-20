@@ -94,36 +94,41 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
     int sent_size = IP_send(buffer[0], le_socket.remote_addr.ip_addr) ; /* 2e arg = structure mic_tcp_socket_addr contenue 
     dans la structure mic_tcp_socket correspondant au socket identifié par mic_sock passé en paramètre*/
 
-    bool recu = false ;
+    int recu = 0 ; // 0 faux et1  juste
     int retour_recv = -1 ;
     int k = 0 ; /* variable qui permet de ne pas rester éternellement dans la boucle si on ne reçoit pas de message
     comme ça on n'en envoie pas 10 000 à la suite*/
 
     mic_tcp_pdu pdu_recu ; //TODO: initialiser le pdu
 
-    while(!recu || k<100) { /* tant qu'on n'a pas fait trop ditérations, 
+    while((recu == 0) || k<10) { /* tant qu'on n'a pas fait trop ditérations, 
         et tant que l'accusé de réception n'est pas reçu, 
         sachant que son numéro doit correspondre au numéro de séquence du pdu contenu dans le buffer*/
         
         while (retour_recv==-1){ // on rend bloquant le recv 
             retour_recv = IP_recv(&pdu_recu, &le_socket.local_addr.ip_addr, &le_socket.remote_addr.ip_addr, timer) ; // TODO: mettre les arguments FAIT
-            //printf("retour_recv : %d\n", retour_recv) ;
+            printf("retour_recv : %d\n", retour_recv) ;
         }
 
-        if((pdu_recu.header.ack_num == buffer[0].header.seq_num)) {
-            recu = true ;
+        printf("pdu_recu.header.ack_num : %d\n", pdu_recu.header.ack_num) ;
+        printf("buffer[0].header.seq_num : %d\n", buffer[0].header.seq_num) ;
+
+        if((pdu_recu.header.ack_num - buffer[0].header.seq_num) == 0) {
+            recu = 1 ;
             
-        } else if(k<5){
-            printf("pdu_recu.header.ack_num : %d\n", pdu_recu.header.ack_num) ;
-            printf("buffer[0].header.seq_num : %d\n", buffer[0].header.seq_num) ;
+        } else {
+            /*printf("pdu_recu.header.ack_num : %d\n", pdu_recu.header.ack_num) ;
+            printf("buffer[0].header.seq_num : %d\n", buffer[0].header.seq_num) ;*/
             sent_size = IP_send(buffer[0], le_socket.remote_addr.ip_addr) ; 
             printf("sent_size : %d\n",sent_size) ;
         }
         k++ ;
     }
-    if(k < 100) {
+    if(k < 11) {
+        printf("k : %d\n", k);
         return sent_size;
     } else {
+        printf("k : %d\n", k);
         return -1 ;
     }
 
