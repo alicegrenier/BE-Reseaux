@@ -101,7 +101,7 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
 
     mic_tcp_pdu pdu_recu ; //TODO: initialiser le pdu
 
-    while((recu == 0) || k<10) { /* tant qu'on n'a pas fait trop ditérations, 
+    while((recu < 1) && k<10) { /* tant qu'on n'a pas fait trop ditérations, 
         et tant que l'accusé de réception n'est pas reçu, 
         sachant que son numéro doit correspondre au numéro de séquence du pdu contenu dans le buffer*/
         
@@ -113,13 +113,18 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
         printf("pdu_recu.header.ack_num : %d\n", pdu_recu.header.ack_num) ;
         printf("buffer[0].header.seq_num : %d\n", buffer[0].header.seq_num) ;
 
-        if((pdu_recu.header.ack_num - buffer[0].header.seq_num) == 0) {
-            recu = 1 ;
-            
-        } else {
+        if (pdu_recu.header.ack==1){ //on vérifie que le PDU reçu soit bien un ack 
+            if((pdu_recu.header.ack_num - buffer[0].header.seq_num) == 0) {
+                printf ("ON EST RENTRES !! \n");
+                recu = 1 ;
+            }
+        }
+
+        else {
             /*printf("pdu_recu.header.ack_num : %d\n", pdu_recu.header.ack_num) ;
             printf("buffer[0].header.seq_num : %d\n", buffer[0].header.seq_num) ;*/
             sent_size = IP_send(buffer[0], le_socket.remote_addr.ip_addr) ; 
+            retour_recv=-1;
             printf("sent_size : %d\n",sent_size) ;
         }
         k++ ;
