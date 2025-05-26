@@ -123,12 +123,12 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
             /*printf("pdu_recu.header.ack_num : %d\n", pdu_recu.header.ack_num) ;
             printf("buffer[0].header.seq_num : %d\n", buffer[0].header.seq_num) ;*/
             sent_size = IP_send(buffer[0], le_socket.remote_addr.ip_addr) ; 
-            retour_recv=-1;
+            retour_recv = -1;
             printf("sent_size : %d\n",sent_size) ;
         }
         k++ ;
     }
-    if(k < 11) {
+    if(k < 10) {
         printf("k : %d\n", k);
         return sent_size;
     } else {
