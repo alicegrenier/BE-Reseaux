@@ -104,10 +104,28 @@ int maj_fenetre_glissante(int retour_recv, int socket, mic_tcp_pdu pdu_recu, int
     printf("moyenne à la fin de maj : %f\n", moyenne) ;
 
     if (moyenne < tx_pertes_admissible) {
-        printf("moyenne : %f < tx_pertes : %f, on return 0 tout va bien\n", moyenne, tx_pertes_admissible) ;
-        return 0 ;
+        printf("moyenne : %f < tx_pertes : %f\n", moyenne, tx_pertes_admissible) ;
+        if (((pdu_recu.header.ack == 1) && (pdu_recu.header.ack_num == buffer[0].header.seq_num))) {
+            printf("on a reçu un ack, et ack_num : %d = seq_num : %d , tout est ok \n", pdu_recu.header.ack_num, buffer[0].header.seq_num) ;
+            printf("tout est ok, on return 0\n") ;
+            return 0 ;
+        } else {
+            printf("pas un ack, ou ack_num : %d != seq_num : %d , ça ne va pas \n", pdu_recu.header.ack_num, buffer[0].header.seq_num) ;
+            printf("on return 1\n") ;
+            return 1 ;
+        }
+        
     } else {
-        printf("moyenne : %f > tx_pertes : %f, on return 1 il faut renvoyer le pdu\n", moyenne, tx_pertes_admissible) ;
+        printf("moyenne : %f > tx_pertes : %f\n", moyenne, tx_pertes_admissible) ;
+        if (((pdu_recu.header.ack == 1) && (pdu_recu.header.ack_num == buffer[0].header.seq_num))) {
+            printf("on a reçu un ack, et ack_num : %d = seq_num : %d ,\n", pdu_recu.header.ack_num, buffer[0].header.seq_num) ;
+            printf("moyenne pas ok, mais le pdu a bien été reçu, pas la peine de le renvoyer, on return 0\n") ;
+            return 0 ;
+        } else {
+            printf("pas un ack, ou ack_num : %d != seq_num : %d , ça ne va pas \n", pdu_recu.header.ack_num, buffer[0].header.seq_num) ;
+            printf("en plus la moyenne n'est pas bonne, on return 1\n") ;
+            return 1 ;
+        }
         return 1 ;
     }
 
@@ -174,15 +192,15 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
         sachant que son numéro doit correspondre au numéro de séquence du pdu contenu dans le buffer*/
         
         retour_recv = IP_recv(&pdu_recu, &le_socket.local_addr.ip_addr, &le_socket.remote_addr.ip_addr, timer) ; // TODO: mettre les arguments FAIT
-        printf("     RETOUR_RECV : %d\n", retour_recv) ;
+        printf("\n \n     RETOUR_RECV : %d\n", retour_recv) ;
         int retour_fenetre_glissante = maj_fenetre_glissante(retour_recv, mic_sock, pdu_recu, buffer[0].header.seq_num) ;
 
         printf("pdu_recu.header.ack_num : %d\n", pdu_recu.header.ack_num) ;
         printf("buffer[0].header.seq_num : %d\n", buffer[0].header.seq_num) ;
 
         //on vérifie que le PDU reçu soit bien un ack 
-        if (retour_fenetre_glissante == 0 || ((pdu_recu.header.ack == 1) && (pdu_recu.header.ack_num == buffer[0].header.seq_num))){ 
-            printf("retour fenetre glissante : %d, on met recu à 1 car soit f_g = 0, soit c'est le bonn ack \n", retour_fenetre_glissante) ;
+        if (retour_fenetre_glissante == 0){ 
+            printf("retour fenetre glissante : %d, on met recu à 1\n", retour_fenetre_glissante) ;
             recu = 1 ;
         } else if (retour_fenetre_glissante == 1) {
             /*printf("pdu_recu.header.ack_num : %d\n", pdu_recu.header.ack_num) ;
@@ -252,28 +270,25 @@ void process_received_PDU(mic_tcp_pdu pdu, mic_tcp_ip_addr local_addr, mic_tcp_i
     if (pdu.payload.size!=0 && pdu.header.seq_num==pe){
         //printf("  ON RENTRE DANS LA RECUPERATION DU PAQUET \n");
         app_buffer_put(pdu.payload);
-
-        //printf("RECEPTION  : ack_num : %d \n",pe);
-
-         //envoyer le ack avec le bon numero 
-        //creer un header
-        mic_tcp_pdu pdu_ack;
-        pdu_ack.header.ack_num=pe;
-        pdu_ack.header.ack=1;
-        pdu_ack.header.dest_port=pdu.header.source_port;
-        pdu_ack.header.source_port=pdu.header.dest_port;
-            //payload 
-        pdu_ack.payload.data=NULL;
-        pdu_ack.payload.size=0;
-
-        buffer[0]=pdu_ack;
-        
-        printf("ACK NUM : %d \n",buffer[0].header.ack_num);
-        IP_send(pdu_ack,remote_addr);
         pe=(pe+1)%2;
-        printf("ack maj : %d \n \n", pe);
-
     }
+    //printf("RECEPTION  : ack_num : %d \n",pe);
+
+     //envoyer le ack avec le bon numero 
+    //creer un header
+    mic_tcp_pdu pdu_ack;
+    pdu_ack.header.ack_num=pdu.header.seq_num;
+    pdu_ack.header.ack=1;
+    pdu_ack.header.dest_port=pdu.header.source_port;
+    pdu_ack.header.source_port=pdu.header.dest_port;
+        //payload 
+    pdu_ack.payload.data=NULL;
+    pdu_ack.payload.size=0;
+
+    buffer[0]=pdu_ack;
+        
+    printf("ACK NUM : %d \n",buffer[0].header.ack_num);
+    IP_send(pdu_ack,remote_addr);
 
    
 }
