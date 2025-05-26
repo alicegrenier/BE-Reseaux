@@ -23,7 +23,7 @@ int mic_tcp_socket(start_mode sm)
    int result = -1;
    printf("[MIC-TCP] Appel de la fonction: ");  printf(__FUNCTION__); printf("\n");
    result = initialize_components(sm); /* Appel obligatoire */
-   set_loss_rate(0);
+   set_loss_rate(50);
 
    return result;
 }
@@ -75,13 +75,20 @@ return un int pour indiquer s'il faut renvoyer le PDU ou non
 1 = renvoyer le pdu
 0 = pas nécessaire de le renvoyer */
 
-int maj_fenetre_glissante(int retour_recv, int socket) {
+int maj_fenetre_glissante(int retour_recv, int socket, mic_tcp_pdu pdu_recu, int seq_attendu) {
     int nouvelle_case ;
     float moyenne = 0.0 ;
+
     if (retour_recv == -1) { // on n'a pas reçu le PDU
         nouvelle_case = 1 ; // il faut renvoyer le PDU (si on est au-dessus du taux  de pertes)
     } else { // on a reçu le PDU
-        nouvelle_case = 0 ; // pas besoin de renvoyer le PDU
+
+        if ((pdu_recu.header.ack == 1) && (pdu_recu.header.ack_num == seq_attendu)) { // le pdu est un ack ET c'est le bon ack
+            nouvelle_case = 0 ; // pas besoin de renvoyer le PDU
+        } else { // le pdu n'est pas un ack, ou ce n'est pas celui qu'on attend, ce qui cosntitue également une perte
+            nouvelle_case = 1 ;
+        }
+        
     }
     tableau_fenetres[socket][index_fenetre[socket]] = nouvelle_case;
     index_fenetre[socket]=(index_fenetre[socket]+1)%taille_fenetre_glissante;
@@ -106,9 +113,7 @@ int maj_fenetre_glissante(int retour_recv, int socket) {
  */
 int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
 {
-    if (matrice_implementee == 0) {
-        init_mat_fg() ;
-    }
+    
     printf("[MIC-TCP] Appel de la fonction: "); printf(__FUNCTION__); printf("\n");
     // créer un mic_tcp_pdu
     mic_tcp_pdu pdu;
@@ -140,6 +145,11 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
     // incrémenter Pe
     pe = (pe+1)%2 ;
 
+    // initialisation de la matrice des fenêtres glissantes
+    // ajouter un mutex quand on passera au multithreading
+    if (matrice_implementee == 0) {
+        init_mat_fg() ;
+    }
     // envoyer le message (dont la taille et le contenu sont passés en paramètres)
     int sent_size = IP_send(buffer[0], le_socket.remote_addr.ip_addr) ; /* 2e arg = structure mic_tcp_socket_addr contenue 
     dans la structure mic_tcp_socket correspondant au socket identifié par mic_sock passé en paramètre*/
@@ -151,25 +161,20 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
 
     mic_tcp_pdu pdu_recu ; 
 
-    while((recu < 1) && k<10) { /* tant qu'on n'a pas fait trop ditérations, 
+    while((recu < 1) && k<10) { /* tant qu'on n'a pas fait trop d'itérations, 
         et tant que l'accusé de réception n'est pas reçu, 
         sachant que son numéro doit correspondre au numéro de séquence du pdu contenu dans le buffer*/
         
-        while (retour_recv==-1){ // on rend bloquant le recv 
-            retour_recv = IP_recv(&pdu_recu, &le_socket.local_addr.ip_addr, &le_socket.remote_addr.ip_addr, timer) ; // TODO: mettre les arguments FAIT
-            printf("retour_recv : %d\n", retour_recv) ;
-        }
+        retour_recv = IP_recv(&pdu_recu, &le_socket.local_addr.ip_addr, &le_socket.remote_addr.ip_addr, timer) ; // TODO: mettre les arguments FAIT
+        printf("retour_recv : %d\n", retour_recv) ;
+        int retour_fenetre_glissante = maj_fenetre_glissante(retour_recv, mic_sock, pdu_recu, buffer[0].header.seq_num) ;
 
         /*printf("pdu_recu.header.ack_num : %d\n", pdu_recu.header.ack_num) ;
         printf("buffer[0].header.seq_num : %d\n", buffer[0].header.seq_num) ;*/
 
-        if (pdu_recu.header.ack==1){ //on vérifie que le PDU reçu soit bien un ack 
-            if((pdu_recu.header.ack_num - buffer[0].header.seq_num) == 0) {
-                recu = 1 ;
-            }
-        }
-
-        else {
+        if (retour_fenetre_glissante == 0){ //on vérifie que le PDU reçu soit bien un ack 
+            recu = 1 ;
+        } else if (retour_fenetre_glissante == 1) {
             /*printf("pdu_recu.header.ack_num : %d\n", pdu_recu.header.ack_num) ;
             printf("buffer[0].header.seq_num : %d\n", buffer[0].header.seq_num) ;*/
             sent_size = IP_send(buffer[0], le_socket.remote_addr.ip_addr) ; 
