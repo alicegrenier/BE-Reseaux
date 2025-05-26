@@ -2,11 +2,18 @@
 #include <api/mictcp_core.h>
 
 #define nb_socket 10
+#define taille_fenetre_glissante 10
 
 struct mic_tcp_sock tableau_sockets[nb_socket] ;
 int pe=0; // c'est aussi Pa _ on met ici la valeur de 0 car cette valeur sera échangée lors de la phase d'établissement de connexion implémentée dans les prochaines versions 
 struct mic_tcp_pdu buffer[1] ; // buffer pour stocker le PDU
 unsigned long timer = 1000 ; //timer avant renvoie d'un PDU
+float tx_pertes_admissible = 0.2; // pourcentage de pertes admissibles
+// int fenetre_glissante[taille_fenetre_glissante] ;
+int index_fenetre[nb_socket] ;
+int tableau_fenetres[nb_socket][taille_fenetre_glissante] ;
+int matrice_implementee = 0 ;
+
 /*
  * Permet de créer un socket entre l’application et MIC-TCP
  * Retourne le descripteur du socket ou bien -1 en cas d'erreur
@@ -53,12 +60,55 @@ int mic_tcp_connect(int socket, mic_tcp_sock_addr addr)
     return 0;
 }
 
+void init_mat_fg() {
+    for (int i = 0 ; i < nb_socket ; i++) {
+        for (int j = 0 ; j < taille_fenetre_glissante ; j++) {
+            tableau_fenetres[i][j] = 1 ;
+        }
+        index_fenetre[i] = 0 ;
+    }
+    matrice_implementee = 1 ;
+}
+
+/* calcule et mise à jour de la fenêtre glissante, 
+return un int pour indiquer s'il faut renvoyer le PDU ou non
+1 = renvoyer le pdu
+0 = pas nécessaire de le renvoyer */
+
+int maj_fenetre_glissante(int retour_recv, int socket) {
+    int nouvelle_case ;
+    float moyenne = 0.0 ;
+    if (retour_recv == -1) { // on n'a pas reçu le PDU
+        nouvelle_case = 1 ; // il faut renvoyer le PDU (si on est au-dessus du taux  de pertes)
+    } else { // on a reçu le PDU
+        nouvelle_case = 0 ; // pas besoin de renvoyer le PDU
+    }
+    tableau_fenetres[socket][index_fenetre[socket]] = nouvelle_case;
+    index_fenetre[socket]=(index_fenetre[socket]+1)%taille_fenetre_glissante;
+
+
+    for (int i = 0 ; i < taille_fenetre_glissante ; i++) {
+        moyenne += (float)tableau_fenetres[socket][i] ;
+    }
+    moyenne = moyenne / taille_fenetre_glissante ;
+
+    if (moyenne < tx_pertes_admissible) {
+        return 0 ;
+    } else {
+        return 1 ;
+    }
+
+}
+
 /*
  * Permet de réclamer l’envoi d’une donnée applicative
  * Retourne la taille des données envoyées, et -1 en cas d'erreur
  */
 int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
 {
+    if (matrice_implementee == 0) {
+        init_mat_fg() ;
+    }
     printf("[MIC-TCP] Appel de la fonction: "); printf(__FUNCTION__); printf("\n");
     // créer un mic_tcp_pdu
     mic_tcp_pdu pdu;
