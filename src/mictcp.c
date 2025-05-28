@@ -5,7 +5,7 @@
 #define taille_fenetre_glissante 10
 
 struct mic_tcp_sock tableau_sockets[nb_socket] ;
-int pe=0; // c'est aussi Pa _ on met ici la valeur de 0 car cette valeur sera échangée lors de la phase d'établissement de connexion implémentée dans les prochaines versions 
+int pe; // c'est aussi Pa _ on met ici la valeur de 0 car cette valeur sera échangée lors de la phase d'établissement de connexion implémentée dans les prochaines versions 
 struct mic_tcp_pdu buffer[1] ; // buffer pour stocker le PDU
 unsigned long timer = 1000 ; //timer avant renvoie d'un PDU
 float tx_pertes_admissible = 0.2; // pourcentage de pertes admissibles
@@ -35,8 +35,15 @@ int mic_tcp_socket(start_mode sm)
 int mic_tcp_bind(int socket, mic_tcp_sock_addr addr)
 {
    printf("[MIC-TCP] Appel de la fonction: ");  printf(__FUNCTION__); printf("\n");
-   tableau_sockets[socket].local_addr = addr ;
-   return 0;
+   unsigned short port =addr.port;
+   for (int i=0; i<nb_socket;i++){
+    if (tableau_sockets[i].local_addr.port==port){
+        return -1; // le numéro de port est déjà utilisé par un autre socket
+    }else{
+        tableau_sockets[socket].local_addr = addr ;
+        return 0;
+   }
+}
 }
 
 /*
@@ -53,10 +60,20 @@ int mic_tcp_accept(int socket, mic_tcp_sock_addr* addr)
  * Permet de réclamer l’établissement d’une connexion
  * Retourne 0 si la connexion est établie, et -1 en cas d’échec
  */
-int mic_tcp_connect(int socket, mic_tcp_sock_addr addr)
+int mic_tcp_connect(int socket, mic_tcp_sock_addr addr) //------------------------------------------------  PAS TERMINE ---------------------------
 {
     printf("[MIC-TCP] Appel de la fonction: ");  printf(__FUNCTION__); printf("\n");
-    tableau_sockets[socket].remote_addr = addr ;
+    tableau_sockets[socket].remote_addr = addr ; //stockage de l'adresse de destination
+    
+    //construction du PDU SYN 
+    mic_tcp_pdu pdu_syn;
+    pe=0; //on initialise la valeur de Pe et on va la transmettre au destinataire 
+    pdu_syn.header.syn=1;
+    pdu_syn.header.ack_num=pe;
+    pdu_syn.payload.size=0;
+    buffer[0]=pdu_syn; //stockage du pdu dans le buffer
+
+    int size_send =IP_send(buffer[0],tableau_sockets[socket].remote_addr.ip_addr);
     return 0;
 }
 
