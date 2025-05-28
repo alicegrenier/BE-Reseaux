@@ -23,7 +23,7 @@ int mic_tcp_socket(start_mode sm)
    int result = -1;
    printf("[MIC-TCP] Appel de la fonction: ");  printf(__FUNCTION__); printf("\n");
    result = initialize_components(sm); /* Appel obligatoire */
-   set_loss_rate(50);
+   set_loss_rate(20);
 
    return result;
 }
@@ -73,9 +73,10 @@ void init_mat_fg() {
 /* calcule et mise à jour de la fenêtre glissante, 
 return un int pour indiquer s'il faut renvoyer le PDU ou non
 1 = renvoyer le pdu
-0 = pas nécessaire de le renvoyer */
+0 = pas nécessaire de le renvoyer 
+2= pas besoin de le renvoyer mais il y eu une perte donc on ne doit pas implémenter le Pe*/
 
-int maj_fenetre_glissante(int retour_recv, int socket, mic_tcp_pdu pdu_recu, int seq_attendu) {
+int maj_fenetre_glissante(int retour_recv, int socket, mic_tcp_pdu pdu_recu, int seq_attendu) { 
     int nouvelle_case ;
     float moyenne = 0.0 ;
 
@@ -103,7 +104,22 @@ int maj_fenetre_glissante(int retour_recv, int socket, mic_tcp_pdu pdu_recu, int
     moyenne = moyenne / taille_fenetre_glissante ;
     printf("moyenne à la fin de maj : %f\n", moyenne) ;
 
-    if (moyenne < tx_pertes_admissible) {
+    if (((pdu_recu.header.ack == 1) && (pdu_recu.header.ack_num == buffer[0].header.seq_num))) { //on a reçu le bon ack
+        printf("on a reçu un ack, et ack_num : %d = seq_num : %d , tout est ok \n", pdu_recu.header.ack_num, buffer[0].header.seq_num) ;
+        printf("tout est ok, on return 0\n") ;
+        return 0 ;
+    }else { //on n'a pas reçu le bon ack ou pas reçu de ack
+        printf("On n'a pas reçu de ack/ le bon num de ack \n");
+        if (moyenne < tx_pertes_admissible) {
+            printf("moyenne : %f < tx_pertes : %f\n", moyenne, tx_pertes_admissible) ;
+            return 2; // on ignore la perte mais on ne doit pas implémenter Pe
+        }else{
+            printf("moyenne : %f >= tx_pertes : %f\n", moyenne, tx_pertes_admissible) ;
+            return 1; // on doit renvoyer le pdu 
+        }
+    }
+
+    /*if (moyenne < tx_pertes_admissible) {
         printf("moyenne : %f < tx_pertes : %f\n", moyenne, tx_pertes_admissible) ;
         if (((pdu_recu.header.ack == 1) && (pdu_recu.header.ack_num == buffer[0].header.seq_num))) {
             printf("on a reçu un ack, et ack_num : %d = seq_num : %d , tout est ok \n", pdu_recu.header.ack_num, buffer[0].header.seq_num) ;
@@ -112,7 +128,7 @@ int maj_fenetre_glissante(int retour_recv, int socket, mic_tcp_pdu pdu_recu, int
         } else {
             printf("pas un ack, ou ack_num : %d != seq_num : %d , ça ne va pas \n", pdu_recu.header.ack_num, buffer[0].header.seq_num) ;
             printf("on return 1\n") ;
-            return 1 ;
+            return 2 ;
         }
         
     } else {
@@ -127,7 +143,7 @@ int maj_fenetre_glissante(int retour_recv, int socket, mic_tcp_pdu pdu_recu, int
             return 1 ;
         }
         return 1 ;
-    }
+    }*/
 
 }
 
@@ -146,6 +162,7 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
     pdu.payload.data = mesg;
     pdu.payload.size = mesg_size;
     int i = 0 ;
+    int retour_fenetre_glissante;
 
     while (i != mic_sock) {
         i++ ;
@@ -166,9 +183,6 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
     stocke le PDU dans la seule case du tableau (on envoi un PDU à la fois) (struct mic_tcp_pdu buffer[1])*/
     buffer[0] = pdu ;
 
-    // incrémenter Pe
-    pe = (pe+1)%2 ;
-
     // initialisation de la matrice des fenêtres glissantes
     // ajouter un mutex quand on passera au multithreading
     if (matrice_implementee == 0) {
@@ -185,15 +199,13 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
 
     mic_tcp_pdu pdu_recu ; 
 
-    
-
     while((recu < 1) && k<10) { /* tant qu'on n'a pas fait trop d'itérations, 
         et tant que l'accusé de réception n'est pas reçu, 
         sachant que son numéro doit correspondre au numéro de séquence du pdu contenu dans le buffer*/
         
         retour_recv = IP_recv(&pdu_recu, &le_socket.local_addr.ip_addr, &le_socket.remote_addr.ip_addr, timer) ; // TODO: mettre les arguments FAIT
         printf("\n \n     RETOUR_RECV : %d\n", retour_recv) ;
-        int retour_fenetre_glissante = maj_fenetre_glissante(retour_recv, mic_sock, pdu_recu, buffer[0].header.seq_num) ;
+        retour_fenetre_glissante = maj_fenetre_glissante(retour_recv, mic_sock, pdu_recu, buffer[0].header.seq_num) ;
 
         printf("pdu_recu.header.ack_num : %d\n", pdu_recu.header.ack_num) ;
         printf("buffer[0].header.seq_num : %d\n", buffer[0].header.seq_num) ;
@@ -212,7 +224,13 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
         }
         k++ ;
     }
+    
+    if (retour_fenetre_glissante !=2){
+        // incrémenter Pe
+        pe = (pe+1)%2 ;
+    }
 
+    //mise à jour de la fenêtre glissante 
     index_fenetre[mic_sock]=(index_fenetre[mic_sock]+1)%taille_fenetre_glissante;
 
     if(k < 10) {
@@ -222,8 +240,7 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
         printf("k : %d\n", k);
         return -1 ;
     }
-
-    
+  
 }
 
 /*
@@ -271,8 +288,9 @@ void process_received_PDU(mic_tcp_pdu pdu, mic_tcp_ip_addr local_addr, mic_tcp_i
         //printf("  ON RENTRE DANS LA RECUPERATION DU PAQUET \n");
         app_buffer_put(pdu.payload);
         pe=(pe+1)%2;
+        printf("MIS A JOUR PA : ack_num : %d \n",pe);
     }
-    //printf("RECEPTION  : ack_num : %d \n",pe);
+    printf("RECEPTION  : ack_num : %d \n",pe);
 
      //envoyer le ack avec le bon numero 
     //creer un header
