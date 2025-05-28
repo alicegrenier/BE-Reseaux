@@ -23,8 +23,21 @@ int mic_tcp_socket(start_mode sm)
    int result = -1;
    printf("[MIC-TCP] Appel de la fonction: ");  printf(__FUNCTION__); printf("\n");
    result = initialize_components(sm); /* Appel obligatoire */
+   struct mic_tcp_sock socket ;
+   int i = 0 ;
+   while (tableau_sockets[i].fd != NULL){
+    i++ ;
+   } 
+   socket.state = ESTABLISHED ;
+   if (i == 0){
+    socket.fd = i ;
+    tableau_sockets[i] = socket ; 
+   } else{
+    socket.fd = i-1 ;
+    tableau_sockets[i-1] = socket ; 
+   } 
    set_loss_rate(20);
-
+    result = socket.fd ;
    return result;
 }
 
@@ -53,7 +66,13 @@ int mic_tcp_bind(int socket, mic_tcp_sock_addr addr)
 int mic_tcp_accept(int socket, mic_tcp_sock_addr* addr)
 {
     printf("[MIC-TCP] Appel de la fonction: ");  printf(__FUNCTION__); printf("\n");
-    return 0;
+    mic_tcp_pdu pdu_recu ;
+    int retour_recv = IP_recv(&pdu_recu, &addr->ip_addr, &tableau_sockets[socket].remote_addr, timer) ;
+    if (pdu_recu.header.syn != 1) { 
+        return -1 ; 
+    } else{
+
+    } 
 }
 
 /*
