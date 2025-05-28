@@ -119,32 +119,6 @@ int maj_fenetre_glissante(int retour_recv, int socket, mic_tcp_pdu pdu_recu, int
         }
     }
 
-    /*if (moyenne < tx_pertes_admissible) {
-        printf("moyenne : %f < tx_pertes : %f\n", moyenne, tx_pertes_admissible) ;
-        if (((pdu_recu.header.ack == 1) && (pdu_recu.header.ack_num == buffer[0].header.seq_num))) {
-            printf("on a reçu un ack, et ack_num : %d = seq_num : %d , tout est ok \n", pdu_recu.header.ack_num, buffer[0].header.seq_num) ;
-            printf("tout est ok, on return 0\n") ;
-            return 0 ;
-        } else {
-            printf("pas un ack, ou ack_num : %d != seq_num : %d , ça ne va pas \n", pdu_recu.header.ack_num, buffer[0].header.seq_num) ;
-            printf("on return 1\n") ;
-            return 2 ;
-        }
-        
-    } else {
-        printf("moyenne : %f > tx_pertes : %f\n", moyenne, tx_pertes_admissible) ;
-        if (((pdu_recu.header.ack == 1) && (pdu_recu.header.ack_num == buffer[0].header.seq_num))) {
-            printf("on a reçu un ack, et ack_num : %d = seq_num : %d ,\n", pdu_recu.header.ack_num, buffer[0].header.seq_num) ;
-            printf("moyenne pas ok, mais le pdu a bien été reçu, pas la peine de le renvoyer, on return 0\n") ;
-            return 0 ;
-        } else {
-            printf("pas un ack, ou ack_num : %d != seq_num : %d , ça ne va pas \n", pdu_recu.header.ack_num, buffer[0].header.seq_num) ;
-            printf("en plus la moyenne n'est pas bonne, on return 1\n") ;
-            return 1 ;
-        }
-        return 1 ;
-    }*/
-
 }
 
 /*
@@ -175,6 +149,7 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
     pdu.header.dest_port =  le_socket.remote_addr.port ; /*port auquel on veut envoyer le message qui a été donné 
     par l'application lors du mic_tcp_connect et qu'on a stocké dans la structure 
     mic_tcp_socket correspondant au socket identifié par mic_sock passé en paramètre*/
+
     /* envoyer un message (dont la taille et le contenu sont passés en paramètres)*/
 
     // renseigner le numéro de séquence
@@ -240,7 +215,6 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
         printf("k : %d\n", k);
         return -1 ;
     }
-  
 }
 
 /*
