@@ -189,16 +189,30 @@ int mic_tcp_connect(int socket, mic_tcp_sock_addr addr)
     }
     
     tableau_sockets[socket].state=SYN_SENT;
+    mic_tcp_pdu pdu_recu ; 
 
     int k = 0 ; /* variable qui permet de ne pas rester éternellement dans la boucle si on ne reçoit pas de message comme ça on n'en envoie pas 10 000 à la suite*/
+    int recu = 0 ; // 0 faux et 1  juste
+    int rtr_recv = -1 ;
 
-    while((tableau_sockets[socket].state!=ESTABLISHED) && k<10) { /* tant qu'on n'a pas fait trop d'itérations, et tant que l'accusé de réception n'est pas reçu, sachant que son numéro doit correspondre au numéro de séquence du pdu contenu dans le buffer*/
+    while((recu < 1) && k<10) { /* tant qu'on n'a pas fait trop d'itérations, et tant que l'accusé de réception n'est pas reçu, sachant que son numéro doit correspondre au numéro de séquence du pdu contenu dans le buffer*/
         
-        if (retour_recv==1){
+        while (rtr_recv==-1){ // on rend bloquant le recv 
+            rtr_recv = IP_recv(&pdu_recu, &tableau_sockets[socket].local_addr.ip_addr, &tableau_sockets[socket].remote_addr.ip_addr, timer) ;
+            printf("retour_recv : %d\n", rtr_recv) ;
+        }
+
+        if ((pdu_recu.header.ack==1)&&(pdu_recu.header.syn==1)){ //on vérifie que le PDU reçu soit bien un synack 
+            if((pdu_recu.header.ack_num - buffer[0].header.seq_num) == 0) {
+                recu = 1 ;
+            }
+        }
+
+        else {
             size_send = IP_send(buffer[0], tableau_sockets[socket].remote_addr.ip_addr) ; 
             retour_recv = -1;
-            k++ ;
-        }   
+            printf("sent_size : %d\n",size_send) ;
+        }
     }
     // on renvoie 0 si la connexion est établie, -1 sinon 
     if(k < 10) {
@@ -214,13 +228,11 @@ int mic_tcp_connect(int socket, mic_tcp_sock_addr addr)
         }
 
         tableau_sockets[socket].state=ESTABLISHED;
-
         return 0;
+
     } else {
         printf("k : %d\n", k);
-
         tableau_sockets[socket].state=IDLE;
-
         return -1 ;
     }
 
