@@ -13,9 +13,7 @@ float tx_pertes_admissible = 0.2; // pourcentage de pertes admissibles
 int index_fenetre[nb_socket] ;
 int tableau_fenetres[nb_socket][taille_fenetre_glissante] ;
 int matrice_implementee = 0 ;
-<<<<<<< HEAD
 int retour_recv=-1; // -1 si on n'a pas reçu, 0 si on a reçu un PDU, 1 si le timer est arrivé à expiration
-=======
 int tableau_initialise = 0 ;
 
 /* initialisation du tableau des sockets */
@@ -25,7 +23,6 @@ int init_tableau_socket() {
     }
     return 1 ;
 }
->>>>>>> refs/remotes/origin/main
 
 /*
  * Permet de créer un socket entre l’application et MIC-TCP
