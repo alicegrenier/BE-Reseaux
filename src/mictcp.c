@@ -89,8 +89,7 @@ int mic_tcp_accept(int socket, mic_tcp_sock_addr* addr)
 
     tableau_sockets[socket].state = IDLE ;
 
-    // se bloque dans un while le temps de savoir si on a reçu un paquet de données
-    // on bloque dans IDLE
+    // se bloque dans un while le temps de savoir si on a reçu un paquet de données (on bloque dans IDLE)
     // si on passe en SYN_RECEIVED, on fait IP_send et on bloque en SYN_SENT
     // si on repasse en SYN_RECEIVED, on se met en ESTABLISHED, sinon on renvoie
 
