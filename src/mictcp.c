@@ -125,6 +125,7 @@ int mic_tcp_accept(int socket, mic_tcp_sock_addr* addr)
     if (tableau_sockets[socket].state == ESTABLISHED) {
         return 0 ;
     } else {
+        tableau_sockets[socket].state = IDLE ;
         return -1 ;
     }
 
