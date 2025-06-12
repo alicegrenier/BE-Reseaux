@@ -79,7 +79,7 @@ int mic_tcp_accept(int socket, mic_tcp_sock_addr* addr)
  * Permet de réclamer l’établissement d’une connexion
  * Retourne 0 si la connexion est établie, et -1 en cas d’échec
  */
-int mic_tcp_connect(int socket, mic_tcp_sock_addr addr) //------------------------------------------------  PAS TERMINE ---------------------------
+int mic_tcp_connect(int socket, mic_tcp_sock_addr addr) 
 {
     printf("[MIC-TCP] Appel de la fonction: ");  printf(__FUNCTION__); printf("\n");
     tableau_sockets[socket].remote_addr = addr ; //stockage de l'adresse de destination
@@ -93,7 +93,38 @@ int mic_tcp_connect(int socket, mic_tcp_sock_addr addr) //----------------------
     buffer[0]=pdu_syn; //stockage du pdu dans le buffer
 
     int size_send =IP_send(buffer[0],tableau_sockets[socket].remote_addr.ip_addr);
-    return 0;
+
+    int recu = 0 ; // 0 faux et 1  juste
+    int retour_recv = -1 ;
+    int k = 0 ; /* variable qui permet de ne pas rester éternellement dans la boucle si on ne reçoit pas de message comme ça on n'en envoie pas 10 000 à la suite*/
+
+    mic_tcp_pdu pdu_recu ;
+    struct mic_tcp_sock socket_recu; 
+
+    while((recu < 1) && k<10) { /* tant qu'on n'a pas fait trop d'itérations, et tant que l'accusé de réception n'est pas reçu, sachant que son numéro doit correspondre au numéro de séquence du pdu contenu dans le buffer*/
+        
+        while (retour_recv==-1){ // on rend bloquant le recv 
+            retour_recv = IP_recv(&pdu_recu, &socket_recu.local_addr.ip_addr, &socket_recu.remote_addr.ip_addr, timer) ;
+            printf("retour_recv : %d\n", retour_recv) ;
+        }
+
+        if (pdu_recu.header.ack==1){ //on vérifie que le PDU reçu soit bien un ack 
+            if((pdu_recu.header.ack_num - buffer[0].header.seq_num) == 0) {
+                recu = 1 ;
+            }
+        }else {
+            size_send = IP_send(buffer[0], socket_recu.remote_addr.ip_addr) ; 
+            retour_recv = -1;
+        }
+        k++ ;
+    } // on renvoie 0 si la connexion est établie, -1 sinon 
+    if(k < 10) {
+        printf("k : %d\n", k);
+        return 0;
+    } else {
+        printf("k : %d\n", k);
+        return -1 ;
+    }
 }
 
 void init_mat_fg() {
