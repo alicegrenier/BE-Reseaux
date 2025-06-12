@@ -85,9 +85,8 @@ int mic_tcp_accept(int socket, mic_tcp_sock_addr* addr)
     mic_tcp_pdu pdu_recu ;
     mic_tcp_pdu pdu_synack ;
     int k = 0 ;
-    int sent_size ;
-
     tableau_sockets[socket].state = IDLE ;
+    int sent_size ;
 
     // se bloque dans un while le temps de savoir si on a reçu un paquet de données (on bloque dans IDLE)
     // si on passe en SYN_RECEIVED, on fait IP_send et on bloque en SYN_SENT
@@ -107,15 +106,19 @@ int mic_tcp_accept(int socket, mic_tcp_sock_addr* addr)
 
         tableau_sockets[socket].state = SYN_SENT ;
     }
+    k = 0 ;
 
     while(tableau_sockets[socket].state =! SYN_RECEIVED) {
-        if (retour_recv == 1) {
+        if (k > 100) {
             sent_size = IP_send(buffer[0], addr->ip_addr) ;
 
             // test du code retour de sent_size
             while (sent_size == -1) {
                 sent_size = IP_send(buffer[0], addr->ip_addr) ;
             }
+            k = 0 ;
+        } else {
+            k++ ;
         }
     }
 
@@ -439,7 +442,17 @@ void process_received_PDU(mic_tcp_pdu pdu, mic_tcp_ip_addr local_addr, mic_tcp_i
         }
     }
 
-    if(socket.state==ESTABLISHED){ // on se charge de mettre les données dans les buffer et envoyer les ack 
+    // dans le cas où l'état est IDLE
+    if () // c'est la bonne donnée
+    {
+        tableau_sockets[i].state = SYN_RECEIVED ;
+    
+    // si l'état est SYN_SENT    
+    } else if () {
+        tableau_sockets[i].state = SYN_RECEIVED ;
+        
+    // si l'état est ESTABLISHED
+    } else if(socket.state==ESTABLISHED){ // on se charge de mettre les données dans les buffer et envoyer les ack 
 
          if (pdu.payload.size!=0 && pdu.header.seq_num==pe){
             //printf("  ON RENTRE DANS LA RECUPERATION DU PAQUET \n");
