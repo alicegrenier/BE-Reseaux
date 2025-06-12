@@ -205,7 +205,7 @@ int mic_tcp_connect(int socket, mic_tcp_sock_addr addr)
         mic_tcp_pdu pdu_ack;
         pdu_ack.header.ack=1;
         pdu_ack.payload.size=0;
-        buffer[0]=pdu_syn; //stockage du pdu dans le buffer
+        buffer[0]=pdu_ack; //stockage du pdu dans le buffer
 
         size_send =-1;
         while (size_send==-1){ // on teste le code de retour de IP_send pour être sures que le PDU est bien envoyé 
@@ -217,6 +217,9 @@ int mic_tcp_connect(int socket, mic_tcp_sock_addr addr)
         return 0;
     } else {
         printf("k : %d\n", k);
+
+        tableau_sockets[socket].state=IDLE;
+
         return -1 ;
     }
 
