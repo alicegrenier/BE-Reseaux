@@ -67,12 +67,41 @@ int mic_tcp_accept(int socket, mic_tcp_sock_addr* addr)
 {
     printf("[MIC-TCP] Appel de la fonction: ");  printf(__FUNCTION__); printf("\n");
     mic_tcp_pdu pdu_recu ;
+    mic_tcp_pdu pdu_synack ;
     int retour_recv = IP_recv(&pdu_recu, &addr->ip_addr, &tableau_sockets[socket].remote_addr, timer) ;
+    
     if (pdu_recu.header.syn != 1) { 
         return -1 ; 
-    } else{
-
     } 
+    
+    pe = pdu_recu.header.ack_num ;
+    pdu_synack.header.ack_num = pdu_recu.header.ack_num ;
+    buffer[0] = pdu_synack ;
+
+    int sent_size = IP_send(buffer[0], addr->ip_addr) ;
+
+    bool recu = false ;
+    retour_recv = -1 ;
+    int i = 0 ;
+
+    while((!recu) && (pdu_recu.header.ack_num == buffer[0].header.seq_num) && (i < 100)) {
+
+        retour_recv = IP_recv(&pdu_recu, &addr->ip_addr, &tableau_sockets[socket].remote_addr, timer) ;
+
+        if ((retour_recv != -1)&&(pdu_recu.header.ack_num == buffer[0].header.seq_num)) {
+            recu = true ;
+        } else {
+            sent_size = IP_send(buffer[0], addr->ip_addr) ;
+        }
+
+        i++ ;
+    }
+
+    if(i<100) {
+        return 0 ;
+    } else {
+        return -1 ;
+    }
 }
 
 /*
@@ -142,7 +171,7 @@ return un int pour indiquer s'il faut renvoyer le PDU ou non
 1 = renvoyer le pdu
 0 = pas nécessaire de le renvoyer 
 2= pas besoin de le renvoyer mais il y eu une perte donc on ne doit pas implémenter le Pe*/
-
+ 
 int maj_fenetre_glissante(int retour_recv, int socket, mic_tcp_pdu pdu_recu, int seq_attendu) { 
     int nouvelle_case ;
     float moyenne = 0.0 ;
