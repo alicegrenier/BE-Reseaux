@@ -13,7 +13,19 @@ float tx_pertes_admissible = 0.2; // pourcentage de pertes admissibles
 int index_fenetre[nb_socket] ;
 int tableau_fenetres[nb_socket][taille_fenetre_glissante] ;
 int matrice_implementee = 0 ;
+<<<<<<< HEAD
 int retour_recv=-1; // -1 si on n'a pas reçu, 0 si on a reçu un PDU, 1 si le timer est arrivé à expiration
+=======
+int tableau_initialise = 0 ;
+
+/* initialisation du tableau des sockets */
+int init_tableau_socket() {
+    for (int i = 0 ; i < nb_socket ; i++) {
+        tableau_sockets[i].fd = -1 ;
+    }
+    return 1 ;
+}
+>>>>>>> refs/remotes/origin/main
 
 /*
  * Permet de créer un socket entre l’application et MIC-TCP
@@ -24,12 +36,17 @@ int mic_tcp_socket(start_mode sm)
    int result = -1;
    printf("[MIC-TCP] Appel de la fonction: ");  printf(__FUNCTION__); printf("\n");
    result = initialize_components(sm); /* Appel obligatoire */
+
+   if (tableau_initialise == 0) {
+    tableau_initialise = init_tableau_socket () ;
+   }
+
    struct mic_tcp_sock socket ;
    int i = 0 ;
-   while (tableau_sockets[i].fd != NULL){
+   while (tableau_sockets[i].fd != -1){
     i++ ;
    } 
-   socket.state = ESTABLISHED ;
+   socket.state = IDLE ;
    if (i == 0){
     socket.fd = i ;
     tableau_sockets[i] = socket ; 
@@ -70,10 +87,55 @@ int mic_tcp_accept(int socket, mic_tcp_sock_addr* addr)
     printf("[MIC-TCP] Appel de la fonction: ");  printf(__FUNCTION__); printf("\n");
     mic_tcp_pdu pdu_recu ;
     mic_tcp_pdu pdu_synack ;
-    int retour_recv = IP_recv(&pdu_recu, &addr->ip_addr, &tableau_sockets[socket].remote_addr, timer) ;
+    int k = 0 ;
+    int sent_size ;
+
+    tableau_sockets[socket].state = IDLE ;
+
+    // se bloque dans un while le temps de savoir si on a reçu un paquet de données
+    // on bloque dans IDLE
+    // si on passe en SYN_RECEIVED, on fait IP_send et on bloque en SYN_SENT
+    // si on repasse en SYN_RECEIVED, on se met en ESTABLISHED, sinon on renvoie
+
+    while(tableau_sockets[socket].state != SYN_RECEIVED) {
+        k++ ;
+    }
+
+    if (tableau_sockets[socket].state == SYN_RECEIVED) {
+        sent_size = IP_send(buffer[0], addr->ip_addr) ;
+
+        // test du code retour de sent_size
+        while (sent_size == -1) {
+            sent_size = IP_send(buffer[0], addr->ip_addr) ;
+        }
+
+        tableau_sockets[socket].state = SYN_SENT ;
+    }
+
+    while(tableau_sockets[socket].state =! SYN_RECEIVED) {
+        if (retour_recv == 1) {
+            sent_size = IP_send(buffer[0], addr->ip_addr) ;
+
+            // test du code retour de sent_size
+            while (sent_size == -1) {
+                sent_size = IP_send(buffer[0], addr->ip_addr) ;
+            }
+        }
+    }
+
+    tableau_sockets[socket].state = ESTABLISHED ;
+
+    if (tableau_sockets[socket].state == ESTABLISHED) {
+        return 0 ;
+    } else {
+        return -1 ;
+    }
+
+    /*int retour_recv = IP_recv(&pdu_recu, &addr->ip_addr, &tableau_sockets[socket].remote_addr, timer) ;
     
     if (pdu_recu.header.syn != 1) { 
         return -1 ; 
+
     } 
     
     pe = pdu_recu.header.ack_num ;
@@ -103,7 +165,7 @@ int mic_tcp_accept(int socket, mic_tcp_sock_addr* addr)
         return 0 ;
     } else {
         return -1 ;
-    }
+    }*/
 }
 
 /*
