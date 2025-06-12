@@ -13,6 +13,7 @@ float tx_pertes_admissible = 0.2; // pourcentage de pertes admissibles
 int index_fenetre[nb_socket] ;
 int tableau_fenetres[nb_socket][taille_fenetre_glissante] ;
 int matrice_implementee = 0 ;
+int retour_recv=-1; // -1 si on n'a pas reçu, 0 si on a reçu un PDU, 1 si le timer est arrivé à expiration
 
 /*
  * Permet de créer un socket entre l’application et MIC-TCP
@@ -49,14 +50,15 @@ int mic_tcp_bind(int socket, mic_tcp_sock_addr addr)
 {
    printf("[MIC-TCP] Appel de la fonction: ");  printf(__FUNCTION__); printf("\n");
    unsigned short port =addr.port;
+   int retour =0;
    for (int i=0; i<nb_socket;i++){
-    if (tableau_sockets[i].local_addr.port==port){
-        return -1; // le numéro de port est déjà utilisé par un autre socket
-    }else{
-        tableau_sockets[socket].local_addr = addr ;
-        return 0;
-   }
-}
+        if (tableau_sockets[i].local_addr.port==port){
+            retour =-1; // le numéro de port est déjà utilisé par un autre socket
+        }else{
+            tableau_sockets[socket].local_addr = addr ;
+        }
+    }
+    return retour;
 }
 
 /*
@@ -121,39 +123,45 @@ int mic_tcp_connect(int socket, mic_tcp_sock_addr addr)
     pdu_syn.payload.size=0;
     buffer[0]=pdu_syn; //stockage du pdu dans le buffer
 
-    int size_send =IP_send(buffer[0],tableau_sockets[socket].remote_addr.ip_addr);
+    int size_send =-1;
+    while (size_send==-1){ // on teste le code de retour de IP_send pour être sures que le PDU est bien envoyé 
+        size_send=IP_send(buffer[0],tableau_sockets[socket].remote_addr.ip_addr);
+    }
+    
+    tableau_sockets[socket].state=SYN_SENT;
 
-    int recu = 0 ; // 0 faux et 1  juste
-    int retour_recv = -1 ;
     int k = 0 ; /* variable qui permet de ne pas rester éternellement dans la boucle si on ne reçoit pas de message comme ça on n'en envoie pas 10 000 à la suite*/
 
-    mic_tcp_pdu pdu_recu ;
-    struct mic_tcp_sock socket_recu; 
-
-    while((recu < 1) && k<10) { /* tant qu'on n'a pas fait trop d'itérations, et tant que l'accusé de réception n'est pas reçu, sachant que son numéro doit correspondre au numéro de séquence du pdu contenu dans le buffer*/
+    while((tableau_sockets[socket].state!=ESTABLISHED) && k<10) { /* tant qu'on n'a pas fait trop d'itérations, et tant que l'accusé de réception n'est pas reçu, sachant que son numéro doit correspondre au numéro de séquence du pdu contenu dans le buffer*/
         
-        while (retour_recv==-1){ // on rend bloquant le recv 
-            retour_recv = IP_recv(&pdu_recu, &socket_recu.local_addr.ip_addr, &socket_recu.remote_addr.ip_addr, timer) ;
-            printf("retour_recv : %d\n", retour_recv) ;
+        if (retour_recv==1){
+            size_send = IP_send(buffer[0], tableau_sockets[socket].remote_addr.ip_addr) ; 
+            retour_recv = -1;
+            k++ ;
+        }   
+    }
+    // on renvoie 0 si la connexion est établie, -1 sinon 
+    if(k < 10) {
+        //on envoie le ack 
+        mic_tcp_pdu pdu_ack;
+        pdu_ack.header.ack=1;
+        pdu_ack.payload.size=0;
+        buffer[0]=pdu_syn; //stockage du pdu dans le buffer
+
+        size_send =-1;
+        while (size_send==-1){ // on teste le code de retour de IP_send pour être sures que le PDU est bien envoyé 
+            size_send=IP_send(buffer[0],tableau_sockets[socket].remote_addr.ip_addr);
         }
 
-        if (pdu_recu.header.ack==1){ //on vérifie que le PDU reçu soit bien un ack 
-            if((pdu_recu.header.ack_num - buffer[0].header.seq_num) == 0) {
-                recu = 1 ;
-            }
-        }else {
-            size_send = IP_send(buffer[0], socket_recu.remote_addr.ip_addr) ; 
-            retour_recv = -1;
-        }
-        k++ ;
-    } // on renvoie 0 si la connexion est établie, -1 sinon 
-    if(k < 10) {
-        printf("k : %d\n", k);
+        tableau_sockets[socket].state=ESTABLISHED;
+
         return 0;
     } else {
         printf("k : %d\n", k);
         return -1 ;
     }
+
+
 }
 
 void init_mat_fg() {
