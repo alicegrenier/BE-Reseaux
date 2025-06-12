@@ -401,6 +401,8 @@ int mic_tcp_recv (int socket, char* mesg, int max_mesg_size)
         return -1;
     } 
     else{
+
+        
         return effective_data_size;
     } 
 }
@@ -425,29 +427,51 @@ int mic_tcp_close (int socket)
 void process_received_PDU(mic_tcp_pdu pdu, mic_tcp_ip_addr local_addr, mic_tcp_ip_addr remote_addr)
 {
     printf("[MIC-TCP] Appel de la fonction: "); printf(__FUNCTION__); printf("\n");
-    if (pdu.payload.size!=0 && pdu.header.seq_num==pe){
-        //printf("  ON RENTRE DANS LA RECUPERATION DU PAQUET \n");
-        app_buffer_put(pdu.payload);
-        pe=(pe+1)%2;
-        printf("MIS A JOUR PA : ack_num : %d \n",pe);
+
+    // on trouve le numéro de socket correspondant au PDU reçu
+    int trouve=0; // 0 -> faux, 1 -> vrai 
+    int i = 0 ;
+    mic_tcp_sock socket ;
+
+    while((!trouve)&&(i<nb_socket)){
+        if (tableau_sockets[i].local_addr.ip_addr.addr==local_addr.addr){
+            trouve=1; 
+            socket = tableau_sockets[i] ;
+        }
     }
-    printf("RECEPTION  : ack_num : %d \n",pe);
 
-     //envoyer le ack avec le bon numero 
-    //creer un header
-    mic_tcp_pdu pdu_ack;
-    pdu_ack.header.ack_num=pdu.header.seq_num;
-    pdu_ack.header.ack=1;
-    pdu_ack.header.dest_port=pdu.header.source_port;
-    pdu_ack.header.source_port=pdu.header.dest_port;
-        //payload 
-    pdu_ack.payload.data=NULL;
-    pdu_ack.payload.size=0;
+    if(socket.state==ESTABLISHED){ // on se charge de mettre les données dans les buffer et envoyer les ack 
 
-    buffer[0]=pdu_ack;
-        
-    printf("ACK NUM : %d \n",buffer[0].header.ack_num);
-    IP_send(pdu_ack,remote_addr);
+         if (pdu.payload.size!=0 && pdu.header.seq_num==pe){
+            //printf("  ON RENTRE DANS LA RECUPERATION DU PAQUET \n");
+            app_buffer_put(pdu.payload);
+            pe=(pe+1)%2;
+            printf("MIS A JOUR PA : ack_num : %d \n",pe);
+        }
+        printf("RECEPTION  : ack_num : %d \n",pe);
+
+        //envoyer le ack avec le bon numero 
+        //creer un header
+        mic_tcp_pdu pdu_ack;
+        pdu_ack.header.ack_num=pdu.header.seq_num;
+        pdu_ack.header.ack=1;
+        pdu_ack.header.dest_port=pdu.header.source_port;
+        pdu_ack.header.source_port=pdu.header.dest_port;
+            //payload 
+        pdu_ack.payload.data=NULL;
+        pdu_ack.payload.size=0;
+
+        buffer[0]=pdu_ack;
+            
+        printf("ACK NUM : %d \n",buffer[0].header.ack_num);
+        IP_send(pdu_ack,remote_addr);
+
+    }
+
+
+
+
+   
 
    
 }
