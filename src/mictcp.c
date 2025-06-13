@@ -455,12 +455,11 @@ void process_received_PDU(mic_tcp_pdu pdu, mic_tcp_ip_addr local_addr, mic_tcp_i
     }
 
     // dans le cas où l'état est IDLE
-    if () // c'est la bonne donnée
-    {
+    if ((tableau_sockets[i].state == IDLE) && (pdu.header.ack_num == buffer[0].header.seq_num)) {// c'est la bonne donnée
         tableau_sockets[i].state = SYN_RECEIVED ;
     
     // si l'état est SYN_SENT    
-    } else if () {
+    } else if ((tableau_sockets[i].state == SYN_SENT) && (pdu.header.ack_num == buffer[0].header.seq_num)) {
         tableau_sockets[i].state = SYN_RECEIVED ;
         
     // si l'état est ESTABLISHED
