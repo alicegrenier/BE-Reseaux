@@ -487,7 +487,7 @@ void process_received_PDU(mic_tcp_pdu pdu, mic_tcp_ip_addr local_addr, mic_tcp_i
         buffer[0]=pdu_ack;
             
         printf("ACK NUM : %d \n",buffer[0].header.ack_num);
-        IP_send(pdu_ack,remote_addr);
+        int sent_size = IP_send(pdu_ack,remote_addr);
 
     }
 
