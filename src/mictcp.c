@@ -82,8 +82,6 @@ int mic_tcp_bind(int socket, mic_tcp_sock_addr addr)
 int mic_tcp_accept(int socket, mic_tcp_sock_addr* addr)
 {
     printf("[MIC-TCP] Appel de la fonction: ");  printf(__FUNCTION__); printf("\n");
-    mic_tcp_pdu pdu_recu ;
-    mic_tcp_pdu pdu_synack ;
     int k = 0 ;
     tableau_sockets[socket].state = IDLE ;
     int sent_size ;
@@ -455,11 +453,13 @@ void process_received_PDU(mic_tcp_pdu pdu, mic_tcp_ip_addr local_addr, mic_tcp_i
     }
 
     // dans le cas où l'état est IDLE
-    if ((tableau_sockets[i].state == IDLE) && (pdu.header.ack_num == buffer[0].header.seq_num)) {// c'est la bonne donnée
+    if ((tableau_sockets[i].state == IDLE) && 
+    (pdu.header.syn==1)) {// c'est la bonne donnée
         tableau_sockets[i].state = SYN_RECEIVED ;
+        pe=pdu.header.ack_num;
     
     // si l'état est SYN_SENT    
-    } else if ((tableau_sockets[i].state == SYN_SENT) && (pdu.header.ack_num == buffer[0].header.seq_num)) {
+    } else if ((tableau_sockets[i].state == SYN_SENT) && (pdu.header.ack==1)) {
         tableau_sockets[i].state = SYN_RECEIVED ;
         
     // si l'état est ESTABLISHED

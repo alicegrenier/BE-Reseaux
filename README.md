@@ -29,7 +29,9 @@ Pour la phase d'établissement de connexion, le client envoie un SYN au serveur 
 Afin de tenir compte du fait que mic-tcp peut avoir plusieurs sockets à gérer, nous avons implémenté un tableau de sockets pour les stocker. Quand les sockets sont crées, on les affecte à la première case du tableau vide. Leur descripteur devient le numéro de la case où ils ont été mis. Pour savoir si une case est vide, on regarde si le descripteur du socket de la case est égale à -1. Ainsi, il a fallu créer une fonction d'initialisation pour mettre les descripteurs de toutes les cases à -1. Pour s'assurer que cette initialisation ne se fait qu'une seule fois, nous avons ajouté un int qui joue le rôle de boolean qui s'appelle tableau_initialise. 
 
 ### Pe et Pa 
-Afin que le client et le serveur se mettent d'accord sur Pe et Pa, nous avons décidé que le client envoyait son Pe lors du SYN. Le serveur reprend ce Pe pour en faire son Pa. 
+Afin que le client et le serveur se mettent d'accord sur Pe et Pa, nous avons décidé que le client envoyait son Pe lors du SYN. Il est alors stocké dans le champ ack_num du header. Le serveur reprend ce Pe pour en faire son Pa. 
+
+
 
 
 
