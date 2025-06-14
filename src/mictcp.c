@@ -20,6 +20,7 @@ int tableau_initialise = 0 ;
 int init_tableau_socket() {
     for (int i = 0 ; i < nb_socket ; i++) {
         tableau_sockets[i].fd = -1 ;
+        tableau_sockets[i].local_addr.ip_addr.addr_size=0;
     }
     return 1 ;
 }
@@ -70,6 +71,7 @@ int mic_tcp_bind(int socket, mic_tcp_sock_addr addr)
             retour =-1; // le numéro de port est déjà utilisé par un autre socket
         }else{
             tableau_sockets[socket].local_addr = addr ;
+            printf("bind: size addr : %d \n", tableau_sockets[socket].local_addr.ip_addr.addr_size);
         }
     }
     return retour;
@@ -187,7 +189,8 @@ int mic_tcp_connect(int socket, mic_tcp_sock_addr addr)
     while (size_send==-1){ // on teste le code de retour de IP_send pour être sures que le PDU est bien envoyé 
         size_send=IP_send(buffer[0],tableau_sockets[socket].remote_addr.ip_addr);
     }
-    
+    printf("SYN envoyé\n "); 
+
     tableau_sockets[socket].state=SYN_SENT;
     mic_tcp_pdu pdu_recu ; 
 
@@ -201,6 +204,7 @@ int mic_tcp_connect(int socket, mic_tcp_sock_addr addr)
             rtr_recv = IP_recv(&pdu_recu, &tableau_sockets[socket].local_addr.ip_addr, &tableau_sockets[socket].remote_addr.ip_addr, timer) ;
             printf("retour_recv : %d\n", rtr_recv) ;
         }
+
 
         if ((pdu_recu.header.ack==1)&&(pdu_recu.header.syn==1)){ //on vérifie que le PDU reçu soit bien un synack 
             if((pdu_recu.header.ack_num - buffer[0].header.seq_num) == 0) {
@@ -446,15 +450,19 @@ void process_received_PDU(mic_tcp_pdu pdu, mic_tcp_ip_addr local_addr, mic_tcp_i
     mic_tcp_sock socket ;
 
     while((!trouve)&&(i<nb_socket)){
-        if (tableau_sockets[i].local_addr.ip_addr.addr==local_addr.addr){
-            trouve=1; 
-            socket = tableau_sockets[i] ;
+        if (tableau_sockets[i].local_addr.ip_addr.addr_size!=0){
+            if (strcmp(tableau_sockets[i].local_addr.ip_addr.addr,local_addr.addr)==0){
+                trouve=1; 
+                socket = tableau_sockets[i] ;
+            }
         }
+        
+        i++;
     }
+    printf("Process_received : socket concerné : %d\n", i); 
 
     // dans le cas où l'état est IDLE
-    if ((tableau_sockets[i].state == IDLE) && 
-    (pdu.header.syn==1)) {// c'est la bonne donnée
+    if ((tableau_sockets[i].state == IDLE) && (pdu.header.syn==1)) {// c'est la bonne donnée
         tableau_sockets[i].state = SYN_RECEIVED ;
         pe=pdu.header.ack_num;
     
@@ -490,11 +498,6 @@ void process_received_PDU(mic_tcp_pdu pdu, mic_tcp_ip_addr local_addr, mic_tcp_i
         int sent_size = IP_send(pdu_ack,remote_addr);
 
     }
-
-
-
-
-   
 
    
 }
