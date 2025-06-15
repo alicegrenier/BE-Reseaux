@@ -112,7 +112,7 @@ int mic_tcp_accept(int socket, mic_tcp_sock_addr* addr)
             sent_size = IP_send(buffer[0], addr->ip_addr);
             j++; 
             if (j<10){
-                printf("Erreur dans IP_send \n"); 
+                printf("Accept: Erreur dans IP_send \n"); 
                 return -1; 
             } 
         }
@@ -121,7 +121,7 @@ int mic_tcp_accept(int socket, mic_tcp_sock_addr* addr)
     }
     k = 0 ;
 
-    while(tableau_sockets[socket].state =! SYN_RECEIVED) {
+    while((tableau_sockets[socket].state =! SYN_RECEIVED)) {
         if (k > 100) {
             sent_size=-1; 
             int j=0; 
@@ -129,7 +129,7 @@ int mic_tcp_accept(int socket, mic_tcp_sock_addr* addr)
                 sent_size = IP_send(buffer[0], addr->ip_addr);
                 j++; 
                 if (j<10){
-                    printf("Erreur dans IP_send \n"); 
+                    printf("Accept: Erreur dans IP_send \n"); 
                     return -1; 
                 } 
             }
@@ -175,7 +175,7 @@ int mic_tcp_connect(int socket, mic_tcp_sock_addr addr)
         size_send = IP_send(buffer[0], addr.ip_addr);
         j++; 
         if (j<10){
-           printf("Erreur dans IP_send \n"); 
+           printf("Connect1: Erreur dans IP_send \n"); 
             return -1; 
         } 
     }
@@ -209,7 +209,7 @@ int mic_tcp_connect(int socket, mic_tcp_sock_addr addr)
                 size_send = IP_send(buffer[0], addr.ip_addr);
                  j++; 
                 if (j<10){
-                    printf("Erreur dans IP_send \n"); 
+                    printf("Connect2: Erreur dans IP_send \n"); 
                     return -1; 
                 } 
             }
@@ -496,7 +496,7 @@ void process_received_PDU(mic_tcp_pdu pdu, mic_tcp_ip_addr local_addr, mic_tcp_i
         tableau_sockets[i].remote_addr.ip_addr=local_addr;
         printf(" Remote_addr du socket mis à jour : %s \n",tableau_sockets[i].remote_addr.ip_addr.addr); 
         tableau_sockets[i].remote_addr.port=pdu.header.source_port;
-        printf("Port de remote_addr mis à jour\ : %d \n", tableau_sockets[i].remote_addr.port); 
+        printf("Port de remote_addr mis à jour : %d \n", tableau_sockets[i].remote_addr.port); 
     
     // si l'état est SYN_SENT    
     } else if ((tableau_sockets[i].state == SYN_SENT) && (pdu.header.ack==1)) {
