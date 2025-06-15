@@ -9,11 +9,9 @@ int pe; // c'est aussi Pa _ on met ici la valeur de 0 car cette valeur sera éch
 struct mic_tcp_pdu buffer[1] ; // buffer pour stocker le PDU
 unsigned long timer = 1000 ; //timer avant renvoie d'un PDU
 float tx_pertes_admissible = 0.2; // pourcentage de pertes admissibles
-// int fenetre_glissante[taille_fenetre_glissante] ;
 int index_fenetre[nb_socket] ;
 int tableau_fenetres[nb_socket][taille_fenetre_glissante] ;
 int matrice_implementee = 0 ;
-int retour_recv=-1; // -1 si on n'a pas reçu, 0 si on a reçu un PDU, 1 si le timer est arrivé à expiration
 int tableau_initialise = 0 ;
 
 /* initialisation du tableau des sockets */
@@ -111,7 +109,7 @@ int mic_tcp_accept(int socket, mic_tcp_sock_addr* addr)
         while (sent_size==-1){ 
             sent_size = IP_send(buffer[0], addr->ip_addr);
             j++; 
-            if (j<10){
+            if (j>10){
                 printf("Accept: Erreur dans IP_send \n"); 
                 return -1; 
             } 
@@ -128,7 +126,7 @@ int mic_tcp_accept(int socket, mic_tcp_sock_addr* addr)
             while (sent_size==-1){ 
                 sent_size = IP_send(buffer[0], addr->ip_addr);
                 j++; 
-                if (j<10){
+                if (j>10){
                     printf("Accept: Erreur dans IP_send \n"); 
                     return -1; 
                 } 
@@ -174,7 +172,7 @@ int mic_tcp_connect(int socket, mic_tcp_sock_addr addr)
     while (size_send==-1){ 
         size_send = IP_send(buffer[0], addr.ip_addr);
         j++; 
-        if (j<10){
+        if (j>10){
            printf("Connect1: Erreur dans IP_send \n"); 
             return -1; 
         } 
@@ -190,12 +188,15 @@ int mic_tcp_connect(int socket, mic_tcp_sock_addr addr)
 
     while((recu < 1) && k<10) { /* tant qu'on n'a pas fait trop d'itérations, et tant que l'accusé de réception n'est pas reçu, sachant que son numéro doit correspondre au numéro de séquence du pdu contenu dans le buffer*/
         
-        while (rtr_recv==-1){ // on rend bloquant le recv 
+        /*while (rtr_recv==-1){ // on rend bloquant le recv 
             rtr_recv = IP_recv(&pdu_recu, &tableau_sockets[socket].local_addr.ip_addr, &tableau_sockets[socket].remote_addr.ip_addr, timer) ;
             printf("retour_recv : %d\n", rtr_recv) ;
-        }
+        }*/
 
-        if ((pdu_recu.header.ack==1)&&(pdu_recu.header.syn==1)){ //on vérifie que le PDU reçu soit bien un synack 
+        rtr_recv = IP_recv(&pdu_recu, &tableau_sockets[socket].local_addr.ip_addr, &tableau_sockets[socket].remote_addr.ip_addr, timer) ;
+        printf("retour_recv : %d\n", rtr_recv) ;
+
+        if ((rtr_recv!=-1)&&(pdu_recu.header.ack==1)&&(pdu_recu.header.syn==1)){ //on vérifie que le PDU reçu soit bien un synack 
             if((pdu_recu.header.ack_num - buffer[0].header.seq_num) == 0) {
                 recu = 1 ;
             }
@@ -208,12 +209,12 @@ int mic_tcp_connect(int socket, mic_tcp_sock_addr addr)
             while (size_send==-1){ 
                 size_send = IP_send(buffer[0], addr.ip_addr);
                  j++; 
-                if (j<10){
+                if (j>10){
                     printf("Connect2: Erreur dans IP_send \n"); 
                     return -1; 
                 } 
             }
-            retour_recv = -1;
+            rtr_recv = -1;
             printf("sent_size : %d\n",size_send) ;
         }
     }
@@ -233,8 +234,8 @@ int mic_tcp_connect(int socket, mic_tcp_sock_addr addr)
         while (size_send ==-1){ 
             size_send= IP_send(buffer[0], addr.ip_addr);
             j++; 
-            if (j<10){
-                printf("Erreur dans IP_send \n"); 
+            if (j>10){
+                printf("Connect (envoi ack): Erreur dans IP_send \n"); 
                 return -1; 
             } 
         }
@@ -342,12 +343,10 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
 
     // renseigner le numéro de séquence
     pdu.header.seq_num = pe ;
-    /* stocker le pdu dans un buffer: o crée un tableau correspondant au PDU stocké dans le buffer en émission, et on
-    stocke le PDU dans la seule case du tableau (on envoi un PDU à la fois) (struct mic_tcp_pdu buffer[1])*/
+    // stocker le pdu dans un buffer
     buffer[0] = pdu ;
 
     // initialisation de la matrice des fenêtres glissantes
-    // ajouter un mutex quand on passera au multithreading
     if (matrice_implementee == 0) {
         init_mat_fg() ;
     }
@@ -357,7 +356,7 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
     while (sent_size==-1){ 
         sent_size = IP_send(buffer[0], tableau_sockets[mic_sock].remote_addr.ip_addr);
         j++; 
-        if (j<10){
+        if (j>10){
             printf("Erreur dans IP_send \n"); 
             return -1; 
         } 
@@ -395,7 +394,7 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
             while (sent_size==-1){ 
                 sent_size = IP_send(buffer[0], tableau_sockets[mic_sock].remote_addr.ip_addr);
                 j++; 
-                if (j<10){
+                if (j>10){
                     printf("Erreur dans IP_send \n"); 
                     return -1; 
                 } 
@@ -489,7 +488,7 @@ void process_received_PDU(mic_tcp_pdu pdu, mic_tcp_ip_addr local_addr, mic_tcp_i
 
     // dans le cas où l'état est IDLE
     printf("Process_received : socket.state = IDLE \n");
-    if ((tableau_sockets[i].state == IDLE) && (pdu.header.syn==1)) {// c'est la bonne donnée
+    if ((tableau_sockets[i].state == IDLE) && (pdu.header.syn==1)) {// vérification de si c'est un SYN 
         tableau_sockets[i].state = SYN_RECEIVED ;
         pe=pdu.header.ack_num;
         printf("Pe mis à jour : %d \n",pe);
@@ -531,12 +530,12 @@ void process_received_PDU(mic_tcp_pdu pdu, mic_tcp_ip_addr local_addr, mic_tcp_i
         int sent_size=-1; 
         int j=0; 
         while (sent_size==-1){ 
-        sent_size = IP_send(buffer[0], tableau_sockets[i].remote_addr.ip_addr);
-        j++; 
-        if (j<10){
-            perror("Erreur dans IP_send \n"); 
-        } 
-    }
+            sent_size = IP_send(buffer[0], tableau_sockets[i].remote_addr.ip_addr);
+            j++; 
+            if (j>10){
+                perror("Erreur dans IP_send \n"); 
+            } 
+        }
 
     }
     else{
