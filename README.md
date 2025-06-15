@@ -31,6 +31,8 @@ Afin de tenir compte du fait que mic-tcp peut avoir plusieurs sockets à gérer,
 ### Pe et Pa 
 Afin que le client et le serveur se mettent d'accord sur Pe et Pa, nous avons décidé que le client envoyait son Pe lors du SYN. Il est alors stocké dans le champ ack_num du header. Le serveur reprend ce Pe pour en faire son Pa. 
 
+### Code de retour de IP_send 
+Nous avons décidé de systématiquement tester le code de retour de la fonction IP_send. Si, après 10 itérations, le code de retour de IP_send est de -1, nous renvoyons -1 à la fonction. 
 
 
 

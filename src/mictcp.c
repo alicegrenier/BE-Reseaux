@@ -83,7 +83,7 @@ int mic_tcp_accept(int socket, mic_tcp_sock_addr* addr)
     printf("[MIC-TCP] Appel de la fonction: ");  printf(__FUNCTION__); printf("\n");
     int k = 0 ;
     tableau_sockets[socket].state = IDLE ;
-    int sent_size ;
+    int sent_size =-1 ;
 
     // création PDU SYN-ACK 
     mic_tcp_pdu pdu_sa; 
@@ -105,11 +105,16 @@ int mic_tcp_accept(int socket, mic_tcp_sock_addr* addr)
     }
 
     if (tableau_sockets[socket].state == SYN_RECEIVED) {
-        sent_size = IP_send(buffer[0], addr->ip_addr) ;
 
-        // test du code retour de sent_size
-        while (sent_size == -1) {
-            sent_size = IP_send(buffer[0], addr->ip_addr) ;
+        // test du code de retour de IP_send 
+        int j=0; 
+        while (sent_size==-1){ 
+            sent_size = IP_send(buffer[0], addr->ip_addr);
+            j++; 
+            if (j<10){
+                printf("Erreur dans IP_send \n"); 
+                return -1; 
+            } 
         }
 
         tableau_sockets[socket].state = SYN_SENT ;
@@ -118,11 +123,15 @@ int mic_tcp_accept(int socket, mic_tcp_sock_addr* addr)
 
     while(tableau_sockets[socket].state =! SYN_RECEIVED) {
         if (k > 100) {
-            sent_size = IP_send(buffer[0], addr->ip_addr) ;
-
-            // test du code retour de sent_size
-            while (sent_size == -1) {
-                sent_size = IP_send(buffer[0], addr->ip_addr) ;
+            sent_size=-1; 
+            int j=0; 
+            while (sent_size==-1){ 
+                sent_size = IP_send(buffer[0], addr->ip_addr);
+                j++; 
+                if (j<10){
+                    printf("Erreur dans IP_send \n"); 
+                    return -1; 
+                } 
             }
             k = 0 ;
         } else {
@@ -161,8 +170,14 @@ int mic_tcp_connect(int socket, mic_tcp_sock_addr addr)
     buffer[0]=pdu_syn; //stockage du pdu dans le buffer
 
     int size_send =-1;
-    while (size_send==-1){ // on teste le code de retour de IP_send pour être sures que le PDU est bien envoyé 
-        size_send=IP_send(buffer[0],tableau_sockets[socket].remote_addr.ip_addr);
+    int j=0; 
+    while (size_send==-1){ 
+        size_send = IP_send(buffer[0], addr.ip_addr);
+        j++; 
+        if (j<10){
+           printf("Erreur dans IP_send \n"); 
+            return -1; 
+        } 
     }
     printf("SYN envoyé\n "); 
 
@@ -187,7 +202,17 @@ int mic_tcp_connect(int socket, mic_tcp_sock_addr addr)
         }
 
         else {
-            size_send = IP_send(buffer[0], tableau_sockets[socket].remote_addr.ip_addr) ; 
+            //test code retour de IP_send 
+            size_send = -1; 
+            int j=0; 
+            while (size_send==-1){ 
+                size_send = IP_send(buffer[0], addr.ip_addr);
+                 j++; 
+                if (j<10){
+                    printf("Erreur dans IP_send \n"); 
+                    return -1; 
+                } 
+            }
             retour_recv = -1;
             printf("sent_size : %d\n",size_send) ;
         }
@@ -202,9 +227,16 @@ int mic_tcp_connect(int socket, mic_tcp_sock_addr addr)
         pdu_ack.header.source_port=tableau_sockets[socket].local_addr.port; 
         buffer[0]=pdu_ack; //stockage du pdu dans le buffer
 
+        //envoi de ack + test code retour 
         size_send =-1;
-        while (size_send==-1){ // on teste le code de retour de IP_send pour être sures que le PDU est bien envoyé 
-            size_send=IP_send(buffer[0],tableau_sockets[socket].remote_addr.ip_addr);
+        int j=0; 
+        while (size_send ==-1){ 
+            size_send= IP_send(buffer[0], addr.ip_addr);
+            j++; 
+            if (j<10){
+                printf("Erreur dans IP_send \n"); 
+                return -1; 
+            } 
         }
 
         tableau_sockets[socket].state=ESTABLISHED;
@@ -320,8 +352,16 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
         init_mat_fg() ;
     }
     // envoyer le message (dont la taille et le contenu sont passés en paramètres)
-    int sent_size = IP_send(buffer[0], le_socket.remote_addr.ip_addr) ; /* 2e arg = structure mic_tcp_socket_addr contenue 
-    dans la structure mic_tcp_socket correspondant au socket identifié par mic_sock passé en paramètre*/
+    int sent_size=-1; 
+    int j=0; 
+    while (sent_size==-1){ 
+        sent_size = IP_send(buffer[0], tableau_sockets[mic_sock].remote_addr.ip_addr);
+        j++; 
+        if (j<10){
+            printf("Erreur dans IP_send \n"); 
+            return -1; 
+        } 
+    }
 
     int recu = 0 ; // 0 faux et 1  juste
     int retour_recv = -1 ;
@@ -349,7 +389,17 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
             /*printf("pdu_recu.header.ack_num : %d\n", pdu_recu.header.ack_num) ;
             printf("buffer[0].header.seq_num : %d\n", buffer[0].header.seq_num) ;*/
             printf("retour fenetre glissante : %d, on met recu à -1 \n", retour_fenetre_glissante) ;
-            sent_size = IP_send(buffer[0], le_socket.remote_addr.ip_addr) ; 
+            // renvoi PDU 
+            sent_size=-1; 
+            int j=0; 
+            while (sent_size==-1){ 
+                sent_size = IP_send(buffer[0], tableau_sockets[mic_sock].remote_addr.ip_addr);
+                j++; 
+                if (j<10){
+                    printf("Erreur dans IP_send \n"); 
+                    return -1; 
+                } 
+            }
             retour_recv = -1;
             printf("     SENT_SIZE : %d\n",sent_size) ;
         }
@@ -477,7 +527,16 @@ void process_received_PDU(mic_tcp_pdu pdu, mic_tcp_ip_addr local_addr, mic_tcp_i
         buffer[0]=pdu_ack;
             
         printf("ACK NUM : %d \n",buffer[0].header.ack_num);
-        int sent_size = IP_send(pdu_ack,remote_addr);
+
+        int sent_size=-1; 
+        int j=0; 
+        while (sent_size==-1){ 
+        sent_size = IP_send(buffer[0], tableau_sockets[i].remote_addr.ip_addr);
+        j++; 
+        if (j<10){
+            perror("Erreur dans IP_send \n"); 
+        } 
+    }
 
     }
     else{
