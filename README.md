@@ -25,7 +25,7 @@ Premièrement, nous avons tenté de savoir où se situe le segmentation fault. A
 
 Nous nous sommes penchées sur la fonction accept qui se déroule en parallèle de process_received_pdu, sur un autre thread, toujours du côté du serveur. Le client a le comportement attendu et renvoie son SYN puisqu'il ne reçoit aucun SYN-ACK. 
 
-Nous avons ajouté des printf à chaque étape stratégique du code afin de vérifier :
+Dans mic_tcp_accept, nous avons ajouté des printf à chaque étape stratégique du code afin de vérifier :
 -	L’état du socket (0, 1, 2 3… qui correspondent à IDLE, SYN_RECEIVED, SYN_SENT, etc…), afin de s’assurer qu’il correspondait aux attentes du code, pour le bon déroulement des boucles. Ce teste a permis de constater que l’état était toujours le bon, et que le segmentation fault ne venait pas de là.
 -	Les différentes données renseignées dans le pdu, afin de s’assurer qu’elles étaient correctes et cohérentes. Ce teste a permis de constater que les données étaient justes, et que le segmentation fault ne venait pas de là.
 -	Les étapes de sorties de boucles et d’itérations, afin de voir où le problème était situé dans le code. Ce test a permis d’observer que le code se déroulait normalement, jusqu’à la ligne 124, qui correspond à l’appel de la fonction IP_send. C’est après cet appel qu’a lieu le segmentation fault.
