@@ -60,7 +60,7 @@ int initialize_components(start_mode mode)
             remote_addr.sin_family = AF_INET;
             remote_addr.sin_port = htons(API_SC_Port);
             hp = gethostbyname("localhost");
-            memcpy (&(remote_addr.sin_addr.s_addr), hp->h_addr, hp->h_length);
+            memcpy (&(remote_addr.sin_addr.s_addr), hp->h_addr , hp->h_length); ///////////
             initialized = 1;
         }
 
@@ -74,7 +74,7 @@ int initialize_components(start_mode mode)
             remote_addr.sin_family = AF_INET;
             remote_addr.sin_port = htons(API_CS_Port);
             hp = gethostbyname("localhost");
-            memcpy (&(remote_addr.sin_addr.s_addr), hp->h_addr, hp->h_length);
+            memcpy (&(remote_addr.sin_addr.s_addr), hp->h_addr , hp->h_length); ////////////
 
             memset((char *) &local_addr, 0, sizeof(local_addr));
             local_addr.sin_family = AF_INET;
@@ -111,7 +111,7 @@ int IP_send(mic_tcp_pdu pk, mic_tcp_ip_addr addr)
 
         if(random > lr_tresh) {
            hp = gethostbyname(addr.addr);
-           memcpy (&(remote_addr.sin_addr.s_addr), hp->h_addr, hp->h_length);
+           memcpy (&(remote_addr.sin_addr.s_addr), hp->h_addr , hp->h_length); ////////////
            sent_size = sendto(sys_socket, tmp.data, tmp.size, 0, (struct sockaddr *)&remote_addr, sizeof(struct sockaddr));
            printf("[MICTCP-CORE] Envoi d'un paquet IP de taille %d vers l'adresse %s\n", sent_size, addr.addr);
         } else {
@@ -123,7 +123,7 @@ int IP_send(mic_tcp_pdu pk, mic_tcp_ip_addr addr)
         /* Correct the sent size */
         result = (sent_size == -1) ? -1 : sent_size - API_HD_Size;
     }
-
+    printf("IP_send : result = %d\n ", result) ;
     return result;
 }
 

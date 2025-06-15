@@ -83,14 +83,19 @@ int mic_tcp_accept(int socket, mic_tcp_sock_addr* addr)
     tableau_sockets[socket].state = IDLE ;
     int sent_size =-1 ;
 
+    printf("accept 0 : tableau_sockets[%d].fd = %d\n", socket, tableau_sockets[socket].fd) ; 
+
     // création PDU SYN-ACK 
     mic_tcp_pdu pdu_sa; 
     pdu_sa.payload.size=0;
     pdu_sa.header.ack=1;
     pdu_sa.header.ack_num=pe;
+    printf("accept 0 : pdu_sa.header.ack_num %d = pe %d\n", pdu_sa.header.ack_num, pe) ;
     pdu_sa.header.syn=1;
     pdu_sa.header.source_port=tableau_sockets[socket].local_addr.port;
+    printf("accept 0 : tableau_sockets[%d].local_addr.port %d = %d\n", socket, pdu_sa.header.source_port, tableau_sockets[socket].local_addr.port) ; 
     pdu_sa.header.dest_port=addr->port;
+    printf("accept 0 : pdu_sa.header.dest_port %d = addr->port %d\n", pdu_sa.header.dest_port, addr->port) ;
 
     buffer[0]=pdu_sa;  
 
@@ -114,6 +119,8 @@ int mic_tcp_accept(int socket, mic_tcp_sock_addr* addr)
         int j=0; 
         while (sent_size==-1){ 
             printf("on est rentré dans le while\n ") ;
+            printf("on est avant IP_send\n ") ;
+            //printf("accept 2 : addr->ip_addr = %s\n ", addr->ip_addr.addr) ;
             sent_size = IP_send(buffer[0], addr->ip_addr);
             printf("accept 2 : sent_size = %d\n ", sent_size) ;
             j++; 
@@ -463,7 +470,7 @@ int mic_tcp_recv (int socket, char* mesg, int max_mesg_size)
 int mic_tcp_close (int socket)
 {
     printf("[MIC-TCP] Appel de la fonction :  "); printf(__FUNCTION__); printf("\n");
-    return -1;
+    return 0;
 }
 
 /*
