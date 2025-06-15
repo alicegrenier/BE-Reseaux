@@ -21,9 +21,19 @@ Version fonctionnelle, grace à une implémentation de garantie de fiabilité pa
 ## Version 4.1
 Version visant à implémentée l'établissement de connexion et la négociation du taux de pertes admissibles. Version non fonctionnelle à cause d'un segmentation fault. 
 ### Outils dont nous nous sommes servis pour essayer de debugger 
-Premièrement, nous avons tenté de savoir où se situe le segmentation fault. Avec les printf déjà présent, nous avons observé que l'erreur se trouve du côté du serveur, au niveau de process_received_pdu. Nous nous sommes donc assurées dans un premier temps que les fonctions en amont se déroule correctement (socket et bind). Ensuite, nous avons vérifié que chaque champ que nous modifions et traitons dans la fonction process_received_pdu soit correct. Cela comprend l'identification du bon socket et la manipulation des adresses. Nous avons également affiché le moment où nous quittons la fonction. Nous constatons donc que le segmentation fault n'apparait pas dans cette fonction. 
+Premièrement, nous avons tenté de savoir où se situe le segmentation fault. Avec les printf déjà présent, nous avons observé que l'erreur se trouve du côté du serveur, au niveau de process_received_pdu. Nous nous sommes donc assurées dans un premier temps que les fonctions en amont se déroulent correctement (socket et bind). Ensuite, nous avons vérifié que chaque champ que nous modifions et traitons dans la fonction process_received_pdu soit correct. Cela comprend l'identification du bon socket et la manipulation des adresses. Nous avons également affiché le moment où nous quittons la fonction. Nous constatons donc que le segmentation fault n'apparait pas dans cette fonction. 
 
 Nous nous sommes penchées sur la fonction accept qui se déroule en parallèle de process_received_pdu, sur un autre thread, toujours du côté du serveur. Le client a le comportement attendu et renvoie son SYN puisqu'il ne reçoit aucun SYN-ACK. 
+
+Nous avons ajouté des printf à chaque étape stratégique du code afin de vérifier :
+-	L’état du socket (0, 1, 2 3… qui correspondent à IDLE, SYN_RECEIVED, SYN_SENT, etc…), afin de s’assurer qu’il correspondait aux attentes du code, pour le bon déroulement des boucles. Ce teste a permis de constater que l’état était toujours le bon, et que le segmentation fault ne venait pas de là.
+-	Les différentes données renseignées dans le pdu, afin de s’assurer qu’elles étaient correctes et cohérentes. Ce teste a permis de constater que les données étaient justes, et que le segmentation fault ne venait pas de là.
+-	Les étapes de sorties de boucles et d’itérations, afin de voir où le problème était situé dans le code. Ce test a permis d’observer que le code se déroulait normalement, jusqu’à la ligne 124, qui correspond à l’appel de la fonction IP_send. C’est après cet appel qu’a lieu le segmentation fault.
+
+Dans mic_tcp_core :
+Nous avons ajouté des printf dans IP_send, afin de constater le problème.  Il s’avère que le paquet est systématiquement perdu, mais pour autant la fonction s’exécute normalement, avec un code retour de 0.
+Nous pensons qu’il y a une erreur d’adressage lors de l’exécution de IP_snd lorsque la fonction est appelée dans mic_tcp_accept, mais nous n’avons pas pu trouver laquelle, dans la mesure où nos printf ne nous ont rien signalé d’anormal.
+
 
  
 ## Choix d'implémentation 
