@@ -100,34 +100,45 @@ int mic_tcp_accept(int socket, mic_tcp_sock_addr* addr)
 
     while(tableau_sockets[socket].state != SYN_RECEIVED) {
         k++ ;
+        //printf("accept 1 : on bloque dans IDLE\n ") ;
+        //printf("accept 1 : socket state : %d\n ", tableau_sockets[socket].state) ;
     }
+    printf("accept 1 : on quitte IDLE au bout de %d itérations\n ", k) ;
+    printf("accept 1 : socket state : %d\n ", tableau_sockets[socket].state) ;
 
     if (tableau_sockets[socket].state == SYN_RECEIVED) {
 
+        printf("accept 2 : socket state : %d\n ", tableau_sockets[socket].state) ;
+        printf("accept 2 : sent_size %d\n ", sent_size) ;
         // test du code de retour de IP_send 
         int j=0; 
         while (sent_size==-1){ 
+            printf("on est rentré dans le while\n ") ;
             sent_size = IP_send(buffer[0], addr->ip_addr);
+            printf("accept 2 : sent_size = %d\n ", sent_size) ;
             j++; 
             if (j>10){
-                printf("Accept: Erreur dans IP_send \n"); 
+                printf("Accept 2 : Erreur dans IP_send \n"); 
                 return -1; 
             } 
         }
 
         tableau_sockets[socket].state = SYN_SENT ;
+        printf("accept 2 : socket state : %d\n ", tableau_sockets[socket].state) ;
     }
     k = 0 ;
 
     while((tableau_sockets[socket].state =! SYN_RECEIVED)) {
+        printf("accept 3 : socket state : %d\n ", tableau_sockets[socket].state) ;
         if (k > 100) {
             sent_size=-1; 
             int j=0; 
             while (sent_size==-1){ 
                 sent_size = IP_send(buffer[0], addr->ip_addr);
+                printf("accept 3 : sent_size = %d\n ", sent_size) ;
                 j++; 
                 if (j>10){
-                    printf("Accept: Erreur dans IP_send \n"); 
+                    printf("Accept 3: Erreur dans IP_send \n"); 
                     return -1; 
                 } 
             }
@@ -138,6 +149,7 @@ int mic_tcp_accept(int socket, mic_tcp_sock_addr* addr)
     }
 
     tableau_sockets[socket].state = ESTABLISHED ;
+    printf("accept 4 : socket state : %d\n ", tableau_sockets[socket].state) ;
 
     if (tableau_sockets[socket].state == ESTABLISHED) {
         return 0 ;
@@ -470,12 +482,12 @@ void process_received_PDU(mic_tcp_pdu pdu, mic_tcp_ip_addr local_addr, mic_tcp_i
     mic_tcp_sock socket ;
 
     while((!trouve)&&(i<nb_socket)){
-        if (tableau_sockets[i].local_addr.ip_addr.addr_size!=0){ // on compare les adresses seulement si l'adresse du socket du tableau est initialisée i.e. ça taille est > à 0 
+        if (tableau_sockets[i].local_addr.ip_addr.addr_size!=0){ // on compare les adresses seulement si l'adresse du socket du tableau est initialisée i.e. sa taille est > à 0 
             printf("Process_received : taille d'une addr > 0, socket %d \n",i); 
             printf("Addresse distante du PDU : %s \n", remote_addr.addr);
             printf("Addresse locale du socket : %s \n", tableau_sockets[i].local_addr.ip_addr.addr);
             if (strcmp(tableau_sockets[i].local_addr.ip_addr.addr,remote_addr.addr)==0){
-                printf("Process_received : socket correspondant à l'addr trouvé \n"); 
+                printf("Process_received : socket %d correspondant à l'addr trouvé \n",i); 
                 trouve=1; 
                 socket = tableau_sockets[i] ;
             }
