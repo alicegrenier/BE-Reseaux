@@ -34,7 +34,7 @@ Dans mic_tcp_core :
 Nous avons ajouté des printf dans IP_send, afin de constater le problème.  Il s’avère que le paquet est systématiquement perdu, mais pour autant la fonction s’exécute normalement, avec un code retour de 0.
 Nous pensons qu’il y a une erreur d’adressage lors de l’exécution de IP_snd lorsque la fonction est appelée dans mic_tcp_accept, mais nous n’avons pas pu trouver laquelle, dans la mesure où nos printf ne nous ont rien signalé d’anormal.
 
-
+Concernant la négociation du pourcentage de pertes admissibles, nous avons choisi une méthode se basant sur des nombres aléatoires. Ainsi, le client envoie avec le SYN de connexion un nombre aléatoire (fonction rand()) représentant le pourcentage de pertes admissibles qu'il souhaite, et qui reste inférieur à 50%. Le serveur renvoie avec le SYN_ACK son pourcentage souhaité (aléatoire également). A la réception du SYN_ACK, le client effectue la moyenne des deux pourcentages et l'affecte au pourcentage final de pertes acceptées (pertes_fixees, défini en variable globale). Le segmentation fault ne nous a pas permis de tester la validité de l'implémentation.
  
 ## Choix d'implémentation 
 ### Tableau de socket 
