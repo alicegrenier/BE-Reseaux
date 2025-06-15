@@ -85,6 +85,17 @@ int mic_tcp_accept(int socket, mic_tcp_sock_addr* addr)
     tableau_sockets[socket].state = IDLE ;
     int sent_size ;
 
+    // création PDU SYN-ACK 
+    mic_tcp_pdu pdu_sa; 
+    pdu_sa.payload.size=0;
+    pdu_sa.header.ack=1;
+    pdu_sa.header.ack_num=pe;
+    pdu_sa.header.syn=1;
+    pdu_sa.header.source_port=tableau_sockets[socket].local_addr.port;
+    pdu_sa.header.dest_port=addr->port;
+
+    buffer[0]=pdu_sa;  
+
     // se bloque dans un while le temps de savoir si on a reçu un paquet de données (on bloque dans IDLE)
     // si on passe en SYN_RECEIVED, on fait IP_send et on bloque en SYN_SENT
     // si on repasse en SYN_RECEIVED, on se met en ESTABLISHED, sinon on renvoie
@@ -145,6 +156,8 @@ int mic_tcp_connect(int socket, mic_tcp_sock_addr addr)
     pdu_syn.header.syn=1;
     pdu_syn.header.ack_num=pe;
     pdu_syn.payload.size=0;
+    pdu_syn.header.source_port=tableau_sockets[socket].local_addr.port;
+    pdu_syn.header.dest_port=addr.port;  
     buffer[0]=pdu_syn; //stockage du pdu dans le buffer
 
     int size_send =-1;
@@ -185,6 +198,8 @@ int mic_tcp_connect(int socket, mic_tcp_sock_addr addr)
         mic_tcp_pdu pdu_ack;
         pdu_ack.header.ack=1;
         pdu_ack.payload.size=0;
+        pdu_ack.header.dest_port=addr.port;
+        pdu_ack.header.source_port=tableau_sockets[socket].local_addr.port; 
         buffer[0]=pdu_ack; //stockage du pdu dans le buffer
 
         size_send =-1;
@@ -275,6 +290,7 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
     
     pdu.payload.data = mesg;
     pdu.payload.size = mesg_size;
+
     int i = 0 ;
     int retour_fenetre_glissante;
 
@@ -374,8 +390,6 @@ int mic_tcp_recv (int socket, char* mesg, int max_mesg_size)
         return -1;
     } 
     else{
-
-        
         return effective_data_size;
     } 
 }
@@ -424,11 +438,15 @@ void process_received_PDU(mic_tcp_pdu pdu, mic_tcp_ip_addr local_addr, mic_tcp_i
     printf("Process_received : socket concerné : %d\n", i); 
 
     // dans le cas où l'état est IDLE
+    printf("Process_received : socket.state = IDLE \n");
     if ((tableau_sockets[i].state == IDLE) && (pdu.header.syn==1)) {// c'est la bonne donnée
         tableau_sockets[i].state = SYN_RECEIVED ;
         pe=pdu.header.ack_num;
+        printf("Pe mis à jour : %d \n",pe);
         tableau_sockets[i].remote_addr.ip_addr=local_addr;
+        printf(" Remote_addr du socket mis à jour : %s \n",tableau_sockets[i].remote_addr.ip_addr.addr); 
         tableau_sockets[i].remote_addr.port=pdu.header.source_port;
+        printf("Port de remote_addr mis à jour\ : %d \n", tableau_sockets[i].remote_addr.port); 
     
     // si l'état est SYN_SENT    
     } else if ((tableau_sockets[i].state == SYN_SENT) && (pdu.header.ack==1)) {
@@ -462,6 +480,9 @@ void process_received_PDU(mic_tcp_pdu pdu, mic_tcp_ip_addr local_addr, mic_tcp_i
         int sent_size = IP_send(pdu_ack,remote_addr);
 
     }
-
+    else{
+        printf("Etat du socket différent de IDLE, SYN_SENT et ESTABLISHED \n"); 
+    } 
+    printf ("Fin process_received\n");
    
 }
