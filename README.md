@@ -19,7 +19,12 @@ Version fonctionnelle, qui permet de renvoyer tous les paquets perdus à l'aide 
 Version fonctionnelle, grace à une implémentation de garantie de fiabilité partielle sous forme de fenêtre glissante. 
 
 ## Version 4.1
-Pour la phase d'établissement de connexion, le client envoie un SYN au serveur pour demander la connexion. Le serveur renvoie un SYN_ACK pour signifier qu'il a bien reçu le SYN et est prêt à accepter la connexion. A la réception du SYN_ACK, le client bascule dans l'état ESTABLISHED et envoie un ACK au serveur pour lui indiquer.
+Version visant à implémentée l'établissement de connexion et la négociation du taux de pertes admissibles. Version non fonctionnelle à cause d'un segmentation fault. 
+### Outils dont nous nous sommes servis pour essayer de debugger 
+Premièrement, nous avons tenté de savoir où se situe le segmentation fault. Avec les printf déjà présent, nous avons observé que l'erreur se trouve du côté du serveur, au niveau de process_received_pdu. Nous nous sommes donc assurées dans un premier temps que les fonctions en amont se déroule correctement (socket et bind). Ensuite, nous avons vérifié que chaque champ que nous modifions et traitons dans la fonction process_received_pdu soit correct. Cela comprend l'identification du bon socket et la manipulation des adresses. Nous avons également affiché le moment où nous quittons la fonction. Nous constatons donc que le segmentation fault n'apparait pas dans cette fonction. 
+
+Nous nous sommes penchées sur la fonction accept qui se déroule en parallèle de process_received_pdu, sur un autre thread, toujours du côté du serveur. Le client a le comportement attendu et renvoie son SYN puisqu'il ne reçoit aucun SYN-ACK. 
+
  
 ## Choix d'implémentation 
 ### Tableau de socket 
