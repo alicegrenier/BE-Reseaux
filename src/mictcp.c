@@ -13,6 +13,7 @@ int index_fenetre[nb_socket] ;
 int tableau_fenetres[nb_socket][taille_fenetre_glissante] ;
 int matrice_implementee = 0 ;
 int tableau_initialise = 0 ;
+int pertes_fixees ;
 
 /* initialisation du tableau des sockets */
 int init_tableau_socket() {
@@ -181,9 +182,19 @@ int mic_tcp_connect(int socket, mic_tcp_sock_addr addr)
     pe=0; //on initialise la valeur de Pe et on va la transmettre au destinataire 
     pdu_syn.header.syn=1;
     pdu_syn.header.ack_num=pe;
-    pdu_syn.payload.size=0;
+    //pdu_syn.payload.size=0;
     pdu_syn.header.source_port=tableau_sockets[socket].local_addr.port;
     pdu_syn.header.dest_port=addr.port;  
+    
+
+    /* négociation du pourcentage de pertes acceptées*/
+    char arg[10];
+    int pertes_client = (rand()%50) ; //le client ne veut pas de pertes supérieures à 50%
+    sprintf(arg,"%d",pertes_client);
+    pdu_syn.payload.size = sizeof(char);
+    pdu_syn.payload.data = (char*)arg;
+    printf("client: pertes souhaitées = %d\n", pertes_client) ;
+
     buffer[0]=pdu_syn; //stockage du pdu dans le buffer
 
     int size_send =-1;
@@ -214,6 +225,10 @@ int mic_tcp_connect(int socket, mic_tcp_sock_addr addr)
 
         rtr_recv = IP_recv(&pdu_recu, &tableau_sockets[socket].local_addr.ip_addr, &tableau_sockets[socket].remote_addr.ip_addr, timer) ;
         printf("retour_recv : %d\n", rtr_recv) ;
+        int pertes_serveur = atoi(pdu_recu.payload.data) ;
+        printf("Le serveur propose une perte de %d\n", pertes_serveur) ;
+        // calcul du pourcentage de pertes final
+        pertes_fixees = (pertes_serveur + pertes_client)/2 ;
 
         if ((rtr_recv!=-1)&&(pdu_recu.header.ack==1)&&(pdu_recu.header.syn==1)){ //on vérifie que le PDU reçu soit bien un synack 
             if((pdu_recu.header.ack_num - buffer[0].header.seq_num) == 0) {
@@ -245,6 +260,11 @@ int mic_tcp_connect(int socket, mic_tcp_sock_addr addr)
         pdu_ack.payload.size=0;
         pdu_ack.header.dest_port=addr.port;
         pdu_ack.header.source_port=tableau_sockets[socket].local_addr.port; 
+        //On envoie au serveur le pourcentage de pertes admissibles fixe finalement 
+        sprintf(arg,"%d",pertes_fixees);
+        pdu_ack.payload.size = sizeof(char);
+        pdu_ack.payload.data = arg;
+        printf("client: pertes fixees finalement : %d\n",pertes_fixees);
         buffer[0]=pdu_ack; //stockage du pdu dans le buffer
 
         //envoi de ack + test code retour 
@@ -318,11 +338,11 @@ int maj_fenetre_glissante(int retour_recv, int socket, mic_tcp_pdu pdu_recu, int
         return 0 ;
     }else { //on n'a pas reçu le bon ack ou pas reçu de ack
         printf("On n'a pas reçu de ack/ le bon num de ack \n");
-        if (moyenne < tx_pertes_admissible) {
-            printf("moyenne : %f < tx_pertes : %f\n", moyenne, tx_pertes_admissible) ;
+        if (moyenne < pertes_fixees) {
+            printf("moyenne : %f < tx_pertes : %f\n", moyenne, pertes_fixees) ;
             return 2; // on ignore la perte mais on ne doit pas implémenter Pe
         }else{
-            printf("moyenne : %f >= tx_pertes : %f\n", moyenne, tx_pertes_admissible) ;
+            printf("moyenne : %f >= tx_pertes : %f\n", moyenne, pertes_fixees) ;
             return 1; // on doit renvoyer le pdu 
         }
     }
@@ -352,17 +372,10 @@ int mic_tcp_send (int mic_sock, char* mesg, int mesg_size)
 
     le_socket = tableau_sockets[i] ;
 
-    pdu.header.source_port =  le_socket.local_addr.port ; /*aller chercher dans la structure mic_tcp_socket 
-    correspondant au socket identifié par mic_sock en paramètre*/ 
-    pdu.header.dest_port =  le_socket.remote_addr.port ; /*port auquel on veut envoyer le message qui a été donné 
-    par l'application lors du mic_tcp_connect et qu'on a stocké dans la structure 
-    mic_tcp_socket correspondant au socket identifié par mic_sock passé en paramètre*/
+    pdu.header.source_port =  le_socket.local_addr.port ; 
+    pdu.header.dest_port =  le_socket.remote_addr.port ; 
 
-    /* envoyer un message (dont la taille et le contenu sont passés en paramètres)*/
-
-    // renseigner le numéro de séquence
     pdu.header.seq_num = pe ;
-    // stocker le pdu dans un buffer
     buffer[0] = pdu ;
 
     // initialisation de la matrice des fenêtres glissantes
@@ -538,9 +551,17 @@ void process_received_PDU(mic_tcp_pdu pdu, mic_tcp_ip_addr local_addr, mic_tcp_i
         pdu_ack.header.ack=1;
         pdu_ack.header.dest_port=pdu.header.source_port;
         pdu_ack.header.source_port=pdu.header.dest_port;
+
+        // négociation du pourcentage de pertes
+        int pertes_serveur;
+        char arg[10];
+        pertes_serveur = (rand() % 50); //le serveur ne souhaite pas avoir des pertes superieures à 50%
+        sprintf(arg,"%d",pertes_serveur);
             //payload 
-        pdu_ack.payload.data=NULL;
-        pdu_ack.payload.size=0;
+        pdu_ack.payload.data=(char*)arg;
+        pdu_ack.payload.size=sizeof(char);
+
+        printf("serveur: pertes souhaitees : %d\n",pertes_serveur);
 
         buffer[0]=pdu_ack;
             
